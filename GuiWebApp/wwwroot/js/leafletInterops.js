@@ -17,8 +17,6 @@ async function createMap(lat, lng, zoomValue) {
     zoom: zoomValue,
     layers: [osmLayer],
   });
-
-  layerControl = L.control.layers(baseMap).addTo(map);
 }
 
 async function addPoint(lat, lng) {
