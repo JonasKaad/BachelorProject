@@ -1,0 +1,151 @@
+﻿@page "/FlightVisualizer"
+@using GuiWebApp.Client.Services;
+@inject MapService map
+@inject HttpClient httpClient
+
+<PageTitle>Flight Visualizer</PageTitle>
+<h3>Flight Visualizer</h3>
+
+<div class="row">
+    <div class="col-xl-2">
+        <p>Input the latitude and longitude for a point below:</p>
+        <div class="form-group mb-2">
+            <input class="form-control ml-2 mr-2" placeholder="latitude" @bind="Latitude" />
+            <input class="form-control ml-2 mr-2" placeholder="longitude" @bind="Longitude" />
+        </div>
+        <button class="btn btn-primary mb-2" @onclick="addMarker"> Add point</button>
+        <button class="btn btn-primary mb-2" @onclick="createTestPath"> Create LA Test Path</button>
+
+       
+        <p>Input the Flight-ID:</p> 
+        <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" @bind="UseFallbackApi" id="fallbackApi">
+            <label class="form-check-label" for="fallbackApi">
+                Use Fallback API?
+            </label>
+        </div>
+        <div class="form-group mb-2">
+            <input class="form-control ml-2 mr-2" list="test-flightids" placeholder="Flight ID" @bind="FlightId" />
+        </div>
+        <datalist id="test-flightids">
+            <option value="1935773929" />
+            <option value="1935812186" />
+        </datalist>
+        <div class="d-flex align-items-center justify-content-between">
+            <div>
+            <button class="btn btn-primary" @onclick="createFlightPath"> Create Path for Flight ID</button>
+            </div>
+            <div>
+            <select name="color" id="color" @bind="Color" class="form-select">
+                <option value="red">Red</option>
+                <option value="blue">Blue</option>  
+                <option value="green">Green</option>
+                <option value="yellow">Yellow</option>
+            </select>
+            </div>
+        </div>
+
+        @if (LastException is { } e)
+        {
+            <div class="card text-bg-danger mb-3" style="max-width: 60rem;">
+                <div class="card-header">Exception: <b>@e.GetType().Name</b></div>
+                <div class="card-body">
+                    <h5 class="card-title">@e.Message</h5>
+                    <pre>@e.StackTrace</pre>
+                </div>
+            </div>
+        }
+
+    </div>
+    <div class="col-xl-10 position-relative">
+        @if (IsLoading)
+        {
+            <Backdrop>
+                <h3>Loading...</h3>
+                <Spinner />
+            </Backdrop>
+            
+        }
+
+        <div id="map" style="height:60rem; z-index: 8">
+        </div>
+    </div>
+</div>
+
+
+
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if(firstRender){
+            await map.CreateMap(55.676098, 12.568337, 10); // Starting Latitude, Longitude and Zoom for the map. This is set to Copenhagen.
+            await map.AddPoint(52.5200, 13.4050);
+        }
+    }
+
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
+    public double FlightId { get; set; }
+    public List<TrafficPosition>? TrafficData { get; set; }
+
+    public bool IsLoading { get; set; }
+    public bool UseFallbackApi { get; set; }
+    public string Color { get; set; } = "red";
+
+    public Exception? LastException { get; set; }
+
+    private async Task addMarker()
+    {
+        await map.AddPoint(Latitude, Longitude);
+    }
+
+    private async Task createTestPath()
+    {
+        var coords = new List<List<double>>()
+        {
+                   new (){45.51, -122.68},
+                   new (){37.77, -122.43},
+                   new (){34.04, -118.2}
+        };
+        await map.CreatePath(coords, "red");
+    }
+
+    private async Task createFlightPath()
+    {
+        LastException = null;
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+
+            var endpoint = UseFallbackApi ? "fallback" : "traffic";
+            var res = await httpClient.GetAsync($"{endpoint}/history/{FlightId}");
+
+
+            if (!res.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException($"{res.StatusCode}: {await res.Content.ReadAsStringAsync()}");
+            }
+            var data = await res.Content.ReadFromJsonAsync<List<TrafficPosition>>();
+            var dataList = new List<List<double>>();
+
+            foreach (var point in data)
+            {
+                dataList.Add(new List<double>() { point.Lat, point.Lon });
+            }
+
+            await map.CreatePath(dataList, Color);
+        }
+        catch (Exception e)
+        {
+            LastException = e;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+
+    }
+
+}

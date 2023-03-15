@@ -1,0 +1,53 @@
+{
+  "data": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          10.7522,
+          59.9139
+        ]
+      },
+      "properties": {
+        "name": "orig"
+      }
+        
+    }
+  ],
+  "symbology": {
+    "default": {
+      "color": "red",
+      "weight": 5,
+      "opacity": 0.4
+    },
+    "case": {
+      "field_name": "name",
+      "classes": [
+        {
+          "value": "orig",
+          "symbol": {
+            "color": "yellow",
+            "weight": 5,
+            "opacity": 0.4
+          }
+        },
+        {
+          "value": "dest",
+          "symbol": {
+            "color": "green",
+            "weight": 5,
+            "opacity": 0.4
+          }
+        }
+      ]
+    }
+  },
+  "tooltip": {
+    "fields_name": [ "name" ],
+    "offset": [ 0, 1 ],
+    "permanent": false,
+    "opacity": 0.5,
+    "coordinate_inversion": true
+  }
+}
