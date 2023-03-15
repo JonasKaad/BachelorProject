@@ -1,0 +1,28 @@
+﻿
+.spinner {
+    border: 16px solid silver;
+    border-top: 16px solid #337ab7;
+    border-radius: 50%;
+    width: 6rem;
+    height: 6rem;
+    margin: 1rem;
+    animation: spin 700ms linear infinite;
+}
+
+    .spinner.small {
+        border: 8px solid silver;
+        border-top: 8px solid #337ab7;
+        border-radius: 50%;
+        width: 2rem;
+        height: 2rem;
+    }
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg)
+    }
+
+    100% {
+        transform: rotate(360deg)
+    }
+}

@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../FlightPatternDetection.DTO/FlightPatternDetection.DTO.csproj" />
+    <ProjectReference Include="..\TrafficApiClient\TrafficApiClient.csproj" />
   </ItemGroup>
 
 </Project>

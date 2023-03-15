@@ -1,0 +1,118 @@
+﻿@page "/aircrafttest"
+@using TrafficApiClient;
+@inject HttpClient httpClient
+<h3>Fetch Aircraft Test</h3>
+
+<div class="form-check mb-2">
+    <input class="form-check-input" type="checkbox" @bind="UseFallbackApi" id="fallbackApi">
+    <label class="form-check-label" for="fallbackApi">
+        Use Fallback API?
+    </label>
+</div>
+
+<div class="mb-3">
+    <label for="flightId" class="form-label">Flight id</label>
+    <input @bind="FlightId" list="test-flightids" type="text" class="form-control" id="flightId" aria-describedby="flightIdHelp">
+    <div id="flightIdHelp" class="form-text">If you don't have one, find one on <a href="https://www.radarbox.com/" target="_blank">https://www.radarbox.com/</a>.</div>
+    <datalist id="test-flightids">
+        <option value="1935773929" />
+        <option value="1935775490" />
+        <option value="1935776481" />
+        <option value="1935772052" />
+    </datalist>
+</div>
+
+<button class="btn btn-primary mb-4" @onclick="FetchFlight">Fetch flight</button>
+
+@if (LastException is { } e)
+{
+    <div class="card text-bg-danger mb-3" style="max-width: 60rem;">
+        <div class="card-header">Exception: <b>@e.GetType().Name</b></div>
+        <div class="card-body">
+            <h5 class="card-title">@e.Message</h5>
+            <pre>@e.StackTrace</pre>
+        </div>
+    </div>
+}
+
+<div class="position-relative mt-2" style="min-height: 20vh;">
+    @if (IsLoading)
+    {
+        <Backdrop>
+            <h3>Loading...</h3>
+            <Spinner />
+        </Backdrop>
+    }
+    <h2>Result:</h2>
+    @if (TrafficData is { } data)
+    {
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Lat</th>
+                    <th>Long</th>
+                    <th>Altitude</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach(var point in data)
+                {
+                    <tr>
+                        <td>@(point?.Clock.ToDateTime())</td>
+                        <td>@(point?.Lat)</td>
+                        <td>@(point?.Lon)</td>
+                        <td>@(point?.Alt)</td>
+                    </tr>
+                }
+                </tbody>
+        </table>
+    }
+</div>
+
+@code {
+    public string FlightId { get; set; } = string.Empty;
+
+    public List<TrafficPosition>? TrafficData { get; set; }
+
+    public bool IsLoading { get; set; }
+    public bool UseFallbackApi { get; set; }
+
+    public Exception? LastException { get; set; }
+
+    public async Task FetchFlight()
+    {
+        if (string.IsNullOrWhiteSpace(FlightId))
+        {
+            return;
+        }
+
+        
+        LastException = null;
+        IsLoading = true;
+        StateHasChanged();
+        try
+        {
+            var id = long.Parse(FlightId);
+
+            // Copy this code when you want to fetch data.
+            var endpoint = UseFallbackApi ? "fallback" : "traffic";
+            var res = await httpClient.GetAsync($"{endpoint}/history/{id}");
+            if (!res.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException($"{res.StatusCode}: {await res.Content.ReadAsStringAsync()}");
+            }
+            TrafficData = await res.Content.ReadFromJsonAsync<List<TrafficPosition>>();
+
+
+        }
+        catch(Exception e)
+        {
+            LastException = e;
+        }
+        finally
+        {
+            IsLoading = false;
+        }
+    }
+}

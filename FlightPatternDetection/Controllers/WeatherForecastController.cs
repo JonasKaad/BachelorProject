@@ -1,7 +1,7 @@
 using FlightPatternDetection.DTO;
 using Microsoft.AspNetCore.Mvc;
 
-namespace GuiWebApp.Server.Controllers
+namespace FlightPatternDetection.Controllers
 {
     [ApiController]
     [Route("[controller]")]

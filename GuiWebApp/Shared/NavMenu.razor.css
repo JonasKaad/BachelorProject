@@ -11,11 +11,15 @@
     font-size: 1.1rem;
 }
 
-.oi {
+.material-symbols-outlined {
     width: 2rem;
     font-size: 1.1rem;
     vertical-align: text-top;
     top: -2px;
+}
+
+.nav-link > .material-symbols-outlined{
+    margin-left: 1rem;
 }
 
 .nav-item {
@@ -40,15 +44,15 @@
         line-height: 3rem;
     }
 
-.nav-item ::deep a.active {
-    background-color: rgba(255,255,255,0.25);
-    color: white;
-}
+        .nav-item ::deep a.active {
+            background-color: rgba(255,255,255,0.25);
+            color: white;
+        }
 
-.nav-item ::deep a:hover {
-    background-color: rgba(255,255,255,0.1);
-    color: white;
-}
+        .nav-item ::deep a:hover {
+            background-color: rgba(255,255,255,0.1);
+            color: white;
+        }
 
 @media (min-width: 641px) {
     .navbar-toggler {
@@ -59,7 +63,7 @@
         /* Never collapse the sidebar for wide screens */
         display: block;
     }
-    
+
     .nav-scrollable {
         /* Allow sidebar to scroll for tall menus */
         height: calc(100vh - 3.5rem);
