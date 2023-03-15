@@ -1,45 +1,47 @@
 ﻿@page "/FlightVisualizer"
-@using LeafletForBlazor
-
+@using GuiWebApp.Client.Services;
+@inject MapService map
+ 
 <h3>FlightVisualizer</h3>
 <p>Hello Flight</p>
 <p>New Hello</p>
 
-<div id="mapDiv" style="width:1000px; height:1000px">
-    <Map 
-        width="800px"
-        height="600px"
-        Parameters="@parameters"
-        GeoJSON_urls="@urls.ToArray()"
-    ></Map>
+
+<div class="form-group mb-2">
+    <input class="form-control ml-2 mr-2" placeholder="latitude" @bind="Latitude" />
+    <input class="form-control ml-2 mr-2" placeholder="longitude" @bind="Longitude" />
+</div>
+<button class="btn btn-primary mb-2" @onclick="addMarker"> Add point</button>
+
+
+
+<div id="map" style="width:1000px; height:1000px">
+   
 </div>
 
 @code {
-        //map initialization parameters
-        Map.LoadParameters parameters = new Map.LoadParameters()
-        {
-            location = new Map.Location()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if(firstRender){
+            var coords = new List<List<double>>()
             {
-            longitude = 12.568337,
-            latitude = 55.676098
-            },
-            zoom_level = 12,
-            map_scale = new Map.MapScale()
-            {
-                has = true,
-                meters = true,
-                miles = false
-            },
-            anyway_overlay_layers_control = true
-        };
+                   new (){45.51, -122.68}, 
+                   new (){37.77, -122.43},
+                   new (){34.04, -118.2}
+            };
 
-        // Loading points
-        List<string> urls = new List<string>() {
-            "pointsfile.json",
-            "polygonsfile.json",
-            "datafile.json",
-            "https://localhost:7035/pointsfile.json",
-            "https://localhost:7035/polygonsfile.json",
-            "https://localhost:7035/datafile.json"
-        };
+            await map.CreateMap(55.676098, 12.568337, 14); // Starting Latitude, Longitude and Zoom for the map. This is set to Copenhagen.
+            await map.AddPoint(52.5200, 13.4050);
+            await map.CreatePath(coords, "red");
+        }
+    }
+
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
+
+    private async Task addMarker()
+    {
+        await map.AddPoint(Latitude, Longitude);
+    }
+
 }
