@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.ResponseCompression;
+using TrafficApiClient;
 
 namespace GuiWebApp
 {
@@ -9,10 +10,11 @@ namespace GuiWebApp
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
-
-            builder.Services.AddControllersWithViews();
+            builder.Services.AddControllers();
             builder.Services.AddRazorPages();
 
+            builder.Services.AddSingleton(sp => new TrafficClient(builder.Configuration["trafficClientEndpoint"]));
+            builder.Services.AddSwaggerGen();
             var app = builder.Build();
 
             // Configure the HTTP request pipeline.
@@ -27,13 +29,15 @@ namespace GuiWebApp
                 app.UseHsts();
             }
 
+            app.UseSwagger();
+            app.UseSwaggerUI();
+
             app.UseHttpsRedirection();
 
             app.UseBlazorFrameworkFiles();
             app.UseStaticFiles();
 
             app.UseRouting();
-
 
             app.MapRazorPages();
             app.MapControllers();

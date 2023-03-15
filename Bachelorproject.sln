@@ -7,7 +7,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlightPatternDetection", "F
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GuiWebApp.Client", "GuiWebApp\GuiWebApp.Client.csproj", "{C27773BD-4348-4F52-9EDA-BC9204BD3DDC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FlightPatternDetection.DTO", "FlightPatternDetection.DTO\FlightPatternDetection.DTO.csproj", "{9EDBA6C8-731D-4FAC-BDE4-085FD7432E3E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FlightPatternDetection.DTO", "FlightPatternDetection.DTO\FlightPatternDetection.DTO.csproj", "{9EDBA6C8-731D-4FAC-BDE4-085FD7432E3E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TrafficApiClient", "TrafficApiClient\TrafficApiClient.csproj", "{616DB68A-63E7-4A18-9343-F9159244251F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests", "UnitTests\UnitTests.csproj", "{A216B741-89B3-49DA-A200-B8A4D3F1286F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -27,6 +31,14 @@ Global
 		{9EDBA6C8-731D-4FAC-BDE4-085FD7432E3E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9EDBA6C8-731D-4FAC-BDE4-085FD7432E3E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9EDBA6C8-731D-4FAC-BDE4-085FD7432E3E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{616DB68A-63E7-4A18-9343-F9159244251F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{616DB68A-63E7-4A18-9343-F9159244251F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{616DB68A-63E7-4A18-9343-F9159244251F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{616DB68A-63E7-4A18-9343-F9159244251F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A216B741-89B3-49DA-A200-B8A4D3F1286F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A216B741-89B3-49DA-A200-B8A4D3F1286F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A216B741-89B3-49DA-A200-B8A4D3F1286F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A216B741-89B3-49DA-A200-B8A4D3F1286F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
