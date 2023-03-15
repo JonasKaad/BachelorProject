@@ -47,7 +47,7 @@
 
         @if (LastException is { } e)
         {
-            <div class="card text-bg-danger mb-3" style="max-width: 60rem;">
+            <div class="card text-bg-danger mb-3 mt-4" style="max-width: 60rem;">
                 <div class="card-header">Exception: <b>@e.GetType().Name</b></div>
                 <div class="card-body">
                     <h5 class="card-title">@e.Message</h5>
@@ -67,7 +67,7 @@
             
         }
 
-        <div id="map" style="height:60rem; z-index: 8">
+        <div id="map" style="height:85vh; z-index: 8">
         </div>
     </div>
 </div>
@@ -80,7 +80,6 @@
     {
         if(firstRender){
             await map.CreateMap(55.676098, 12.568337, 10); // Starting Latitude, Longitude and Zoom for the map. This is set to Copenhagen.
-            await map.AddPoint(52.5200, 13.4050);
         }
     }
 
