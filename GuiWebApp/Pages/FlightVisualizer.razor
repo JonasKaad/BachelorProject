@@ -1,8 +1,45 @@
 ﻿@page "/FlightVisualizer"
+@using LeafletForBlazor
+
 <h3>FlightVisualizer</h3>
 <p>Hello Flight</p>
 <p>New Hello</p>
 
-@code {
+<div id="mapDiv" style="width:1000px; height:1000px">
+    <Map 
+        width="800px"
+        height="600px"
+        Parameters="@parameters"
+        GeoJSON_urls="@urls.ToArray()"
+    ></Map>
+</div>
 
+@code {
+        //map initialization parameters
+        Map.LoadParameters parameters = new Map.LoadParameters()
+        {
+            location = new Map.Location()
+            {
+            longitude = 12.568337,
+            latitude = 55.676098
+            },
+            zoom_level = 12,
+            map_scale = new Map.MapScale()
+            {
+                has = true,
+                meters = true,
+                miles = false
+            },
+            anyway_overlay_layers_control = true
+        };
+
+        // Loading points
+        List<string> urls = new List<string>() {
+            "pointsfile.json",
+            "polygonsfile.json",
+            "datafile.json",
+            "https://localhost:7035/pointsfile.json",
+            "https://localhost:7035/polygonsfile.json",
+            "https://localhost:7035/datafile.json"
+        };
 }

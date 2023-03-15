@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
+﻿<Project Sdk="Microsoft.NET.Sdk.BlazorWebAssembly">
 
 	<PropertyGroup>
 		<TargetFramework>net7.0</TargetFramework>
@@ -9,12 +9,14 @@
 	<ItemGroup>
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly" Version="7.0.1" />
 		<PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.DevServer" Version="7.0.1" PrivateAssets="all" />
-		<PackageReference Include="BlazorLeaflet" Version="0.4.0-alpha" />
+		<PackageReference Include="LeafletForBlazor" Version="1.2.1" />
 	</ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="../FlightPatternDetection.DTO/FlightPatternDetection.DTO.csproj" />
     <ProjectReference Include="..\TrafficApiClient\TrafficApiClient.csproj" />
   </ItemGroup>
+
+	<ProjectExtensions><VisualStudio><UserProperties /></VisualStudio></ProjectExtensions>
 
 </Project>
