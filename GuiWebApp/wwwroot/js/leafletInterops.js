@@ -12,8 +12,11 @@ var baseMap = {
 var layerControl;
 
 async function createMap(lat, lng, zoomValue) {
+  if (map !== undefined) {
+    map.remove();
+  }
   map = L.map("map", {
-    center: [lng, lat],
+    center: [lat, lng],
     zoom: zoomValue,
     layers: [osmLayer],
   });
