@@ -1,3 +1,5 @@
+scripts/**.json
+scripts/out/**.json
 
 FlightPatternDetection/FallbackHistoryData/**.json
 FlightPatternDetection/FallbackHistoryData/**.kml
