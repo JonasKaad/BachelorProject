@@ -14,7 +14,6 @@ namespace FlightPatternDetection.Controllers
             _aircraftApi = aircraftApi ?? throw new ArgumentNullException(nameof(aircraftApi));
         }
 
-
         [HttpGet("history/{id}")]
         public async Task<ActionResult<List<TrafficPosition>>> GetAircraftHistoryAsync(long id)
         {

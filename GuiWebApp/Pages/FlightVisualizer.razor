@@ -1,5 +1,7 @@
 ﻿@page "/FlightVisualizer"
 @using GuiWebApp.Client.Services;
+@using System.Text.Json;
+@using System.Globalization;
 @inject MapService map
 @inject HttpClient httpClient
 
@@ -69,6 +71,25 @@
             </div>
         }
 
+        @if (DetectingHoldingPattern)
+        {
+            <div class="col mt-2 p-4 d-flex flex-column justify-content-center align-items-center">
+                <p>Detecting holding pattern...</p>
+                <Spinner Small="true" />
+            </div>
+        }
+
+        @if (LastHoldingResult is { } holdingResult)
+        {
+            <div class="card text-bg-@(holdingResult.IsHolding ? "success" : "danger") mb-3 mt-4" style="max-width: 60rem;">
+                <div class="card-header"><b>Holding result</b></div>
+                <div class="card-body">
+                    <h5 class="card-title">Is holding: @holdingResult.IsHolding</h5>
+                    <p>Detection took: @holdingResult.DetectionTime.TotalMilliseconds.ToString("0.00", CultureInfo.InvariantCulture) ms.</p>
+                </div>
+            </div>
+        }
+
     </div>
     <div class="col-xxl-9 col-xl-8 position-relative">
         @if (IsLoading)
@@ -77,7 +98,6 @@
                 <h3>Loading...</h3>
                 <Spinner />
             </Backdrop>
-            
         }
 
         <div id="map" style="height:82vh; z-index: 8">
@@ -99,20 +119,48 @@
 
     private async Task ResetMap()
     {
-        await map.CreateMap(55.676098, 12.568337,
-            10); // Starting Latitude, Longitude and Zoom for the map. This is set to Copenhagen.
+        await map.CreateMap(55.676098, 12.568337, 10); // Starting Latitude, Longitude and Zoom for the map. This is set to Copenhagen.
     }
 
     public double Latitude { get; set; }
     public double Longitude { get; set; }
-    public double FlightId { get; set; }
+    public long FlightId { get; set; }
     public List<TrafficPosition>? TrafficData { get; set; }
 
     public bool IsLoading { get; set; }
-    public bool UseFallbackApi { get; set; }
+    public bool UseFallbackApi { get; set; } = true;
     public string Color { get; set; } = "red";
 
     public Exception? LastException { get; set; }
+    public bool DetectingHoldingPattern { get; set; }
+    public HoldingResult? LastHoldingResult { get; set; }
+
+    private async Task CheckForHolding()
+    {
+        LastHoldingResult = null;
+        DetectingHoldingPattern = true;
+        StateHasChanged();
+        try
+        {
+            var result = await httpClient.PostAsJsonAsync("Engine/analyze", new AnalyzeFlightRequest()
+                {
+                    FlightId = FlightId,
+                    UseFallback = UseFallbackApi
+                });
+
+            if (result.IsSuccessStatusCode)
+            {
+                LastHoldingResult = await result.Content.ReadFromJsonAsync<HoldingResult>();
+            }
+            else
+            {
+                LastException = new Exception($"Could not verify Holding Pattern. Got status: {result.StatusCode}: {result.Content}");
+            }
+        }finally{
+            DetectingHoldingPattern = false;
+            StateHasChanged();
+        }
+    }
 
     private async Task AddMarker()
     {
@@ -133,7 +181,8 @@
     private async Task CreateFlightPath()
     {
         await ResetMap();
-        
+
+        LastHoldingResult = null;
         LastException = null;
         IsLoading = true;
         StateHasChanged();
@@ -168,6 +217,10 @@
             IsLoading = false;
         }
 
+        if(LastException is null)
+        {
+            await CheckForHolding();
+        }
     }
 
 }

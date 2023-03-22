@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\GuiWebApp\GuiWebApp.Client.csproj" />
+    <ProjectReference Include="..\PatternDetectionEngine\PatternDetectionEngine.csproj" />
   </ItemGroup>
 
   <ItemGroup>
