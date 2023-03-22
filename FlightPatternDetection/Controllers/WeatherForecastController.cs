@@ -37,7 +37,7 @@ namespace FlightPatternDetection.Controllers
         }
 
         [HttpGet("GetAirportExample")]
-        public async Task<List<string>> GetAirports()
+        public async Task<List<string?>> GetAirports()
         {
             //var allAirports = await _context.Airports.ToListAsync();
 
@@ -92,7 +92,7 @@ namespace FlightPatternDetection.Controllers
             var testRoute = await _context.RouteInformation.ToListAsync();
 
             return testRoute.First();
-        }        
+        }
 
         [HttpGet("GetHoldingPatternExample")]
         public async Task<HoldingPattern> GetHoldingPattern()
