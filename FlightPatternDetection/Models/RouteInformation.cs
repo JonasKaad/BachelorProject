@@ -11,13 +11,13 @@ public class RouteInformation
     public int FlightId { get; set; }
 
     [ForeignKey("Destination_ICAO")]
-    public Airport Destination { get; set; }
+    public Airport? Destination { get; set; }
 
     [ForeignKey("Origin_ICAO")]
-    public Airport Origin { get; set; }
+    public Airport? Origin { get; set; }
     public DateTime Takeoff_Time { get; set; }
     [Column(name: "ATC_Route")]
-    public string ATCRoute { get; set; }
+    public string? ATCRoute { get; set; }
 
 
 }

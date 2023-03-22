@@ -12,15 +12,15 @@ public class Flight
     [Column(name: "Flight_Id")]
     public int FlightId { get; set; }
 
-    public string Registration { get; set; }
+    public string? Registration { get; set; }
 
     [Required(ErrorMessage = "ICAO is needed for a flight")]
-    public string ICAO { get; set; }
+    public string? ICAO { get; set; }
 
     [Column(name: "Mode_S")]
-    public string ModeS { get; set; }
+    public string? ModeS { get; set; }
 
 
     [Column(name: "Call_Sign")]
-    public string CallSign { get; set; }
+    public string? CallSign { get; set; }
 }
