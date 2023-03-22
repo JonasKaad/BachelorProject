@@ -14,8 +14,10 @@ jobs:
         dotnet-version: '7.0.x'
     - name: Install dependencies
       run: dotnet restore
+    - name: Build with dotnet
+      run: dotnet build
     - name: Test with dotnet
-      run: dotnet test --logger trx --results-directory "TestResults"
+      run: dotnet test --no-build --logger trx --results-directory "TestResults"
     - name: Upload dotnet test results
       uses: actions/upload-artifact@v3
       with:
