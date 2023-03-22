@@ -4,6 +4,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FlightPatternDetection.Models;
 
+
+[Table("Airport")]
 public class Airport
 {
     [Key]

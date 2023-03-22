@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FlightPatternDetection.Models;
 
+[Table("Flight")]
 [Index(nameof(Flight_Id), IsUnique = true)]
 public class Flight
 {

@@ -4,7 +4,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace FlightPatternDetection.Models;
 
-public class Route_Information
+[Table("Route_Information")]
+public class RouteInformation
 {
     [Key, ForeignKey(nameof(Flight.Flight_Id))]
     public int Flight_Id { get; set; }

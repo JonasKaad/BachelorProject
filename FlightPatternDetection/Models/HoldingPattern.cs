@@ -3,7 +3,8 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 namespace FlightPatternDetection.Models;
 
-public class Holding_Pattern
+[Table("Holding_Pattern")]
+public class HoldingPattern
 {
     [Key, ForeignKey(nameof(Flight.Flight_Id))]
     public int Flight_Id { get; set; }
