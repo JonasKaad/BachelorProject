@@ -28,5 +28,6 @@ async function addPoint(lat, lng) {
 
 async function createPath(coordinates, color) {
   var polyline = L.polyline(coordinates, { color: color }).addTo(map);
+  L.featureGroup(getArrows(coordinates, 'black', 1, map)).addTo(map);
   map.fitBounds(polyline.getBounds());
 }
