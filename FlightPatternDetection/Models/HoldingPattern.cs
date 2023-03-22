@@ -6,14 +6,14 @@ namespace FlightPatternDetection.Models;
 [Table("Holding_Pattern")]
 public class HoldingPattern
 {
-    [Key, ForeignKey(nameof(Flight.FlightId))]
-    [Column(name: "Flight_Id")]
+    [Key, ForeignKey("Flight"), Column(name: "Flight_Id")]
     public int FlightId { get; set; }
 
     public string Fixpoint { get; set; }
 
     public int Laps { get; set; }
 
+    [EnumDataType(typeof(int))]
     public Direction Direction { get; set; }
 
     [Column(name: "Leg_Distance")]

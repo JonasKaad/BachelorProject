@@ -12,8 +12,8 @@ namespace FlightPatternDetection.Controllers
     {
         private static readonly string[] Summaries = new[]
         {
-        "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
-    };
+            "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching"
+        };
 
         private readonly ILogger<WeatherForecastController> _logger;
         private readonly ApplicationDbContext _context;
@@ -84,6 +84,23 @@ namespace FlightPatternDetection.Controllers
             _context.Flights.Add(newFlight);
             await _context.SaveChangesAsync();
             return newFlight;
+        }
+
+        [HttpGet("GetRouteExample")]
+        public async Task<RouteInformation> GetRoutes()
+        {
+            var testRoute = await _context.RouteInformation.ToListAsync();
+
+            return testRoute.First();
+        }
+
+
+        [HttpGet("GetHoldingPatternExample")]
+        public async Task<HoldingPattern> GetHoldingPattern()
+        {
+            var testPattern = await _context.HoldingPatterns.ToListAsync();
+
+            return testPattern.First();
         }
     }
 }

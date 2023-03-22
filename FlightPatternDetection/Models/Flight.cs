@@ -8,7 +8,6 @@ namespace FlightPatternDetection.Models;
 [Index(nameof(FlightId), IsUnique = true)]
 public class Flight
 {
-
     [Key]
     [Column(name: "Flight_Id")]
     public int FlightId { get; set; }
