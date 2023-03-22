@@ -107,3 +107,15 @@ a, .btn-link {
     .loading-progress-text:after {
         content: var(--blazor-load-percentage-text, "Loading");
     }
+
+.arrow-icon {
+    width: 14px;
+    height: 14px;
+}
+
+.arrow-icon > div {
+    margin-left: -1px;
+    margin-top: -4px;
+    transform-origin: center center;
+    font: 1rem "Helvetica Neue", Arial, Helvetica, sans-serif;
+}

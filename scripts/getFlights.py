@@ -5,7 +5,7 @@ import time
 import argparse
 
 endpoint = "https://traffic-service.acqa.foreflight.com/traffic/v1/Aircraft/history/"
-delay_between_requests_seconds = 0.2
+delay_between_requests_seconds = 0
 output_direcory = "out/"
 
 def fetchFlights(fileName, startAt):

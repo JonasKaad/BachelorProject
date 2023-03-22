@@ -1,4 +1,5 @@
 using FlightPatternDetection;
+using FlightPatternDetection.Services;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using TrafficApiClient;
@@ -14,8 +15,13 @@ namespace FlightPatternDetection
             // Add services to the container.
             builder.Services.AddControllers();
             builder.Services.AddRazorPages();
+            builder.Services.AddLogging((config) =>
+            {
+                config.AddConsole();
+            });
 
             builder.Services.AddSingleton(sp => new TrafficClient(builder.Configuration["trafficClientEndpoint"]));
+            builder.Services.AddSingleton<NavDbManager>();
             builder.Services.AddSwaggerGen();
 
 

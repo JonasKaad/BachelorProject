@@ -5,6 +5,8 @@ FlightPatternDetection/FallbackHistoryData/**.json
 FlightPatternDetection/FallbackHistoryData/**.kml
 FlightPatternDetection/appsettings.Development.json
 
+FlightPatternDetection/NAVDB.sqlite
+
 # === BELOW IS GENERATED ===
 
 # Created by https://www.toptal.com/developers/gitignore/api/aspnetcore
