@@ -92,8 +92,7 @@ namespace FlightPatternDetection.Controllers
             var testRoute = await _context.RouteInformation.ToListAsync();
 
             return testRoute.First();
-        }
-
+        }        
 
         [HttpGet("GetHoldingPatternExample")]
         public async Task<HoldingPattern> GetHoldingPattern()
@@ -101,6 +100,23 @@ namespace FlightPatternDetection.Controllers
             var testPattern = await _context.HoldingPatterns.ToListAsync();
 
             return testPattern.First();
+        }
+
+        [HttpPost("CreateHoldingPatternExample")]
+        public async Task<HoldingPattern> CreateHoldingPattern(int flightId, string fixpoint, int laps, Direction direction, double legDistance, double altitude)
+        {
+            var newHoldingPattern = new HoldingPattern()
+            {
+                FlightId = flightId,
+                Fixpoint = fixpoint,
+                Laps = laps,
+                Direction = direction,
+                LegDistance = legDistance,
+                Altitude = altitude,
+            };
+            _context.HoldingPatterns.Add(newHoldingPattern);
+            await _context.SaveChangesAsync();
+            return newHoldingPattern;
         }
     }
 }

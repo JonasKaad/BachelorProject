@@ -20,6 +20,4 @@ public class HoldingPattern
     public double LegDistance { get; set; }
 
     public double Altitude { get; set; }
-
-
 }

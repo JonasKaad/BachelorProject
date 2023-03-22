@@ -19,4 +19,5 @@ public class RouteInformation
     [Column(name: "ATC_Route")]
     public string ATCRoute { get; set; }
 
+
 }
