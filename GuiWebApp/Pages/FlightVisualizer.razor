@@ -89,9 +89,16 @@
 @code {
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if(firstRender){
-            await map.CreateMap(55.676098, 12.568337, 10); // Starting Latitude, Longitude and Zoom for the map. This is set to Copenhagen.
+        if(firstRender)
+        {
+            await ResetMap();
         }
+    }
+
+    private async Task ResetMap()
+    {
+        await map.CreateMap(55.676098, 12.568337,
+            10); // Starting Latitude, Longitude and Zoom for the map. This is set to Copenhagen.
     }
 
     public double Latitude { get; set; }
@@ -123,6 +130,8 @@
 
     private async Task createFlightPath()
     {
+        await ResetMap();
+        
         LastException = null;
         IsLoading = true;
         StateHasChanged();
