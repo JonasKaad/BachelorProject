@@ -9,12 +9,23 @@
 <div class="row">
     <div class="col-xxl-3 col-xl-4">
         <p>Input the latitude and longitude for a point below:</p>
-        <div class="form-group mb-2">
-            <input class="form-control ml-2 mr-2" placeholder="latitude" @bind="Latitude" />
-            <input class="form-control ml-2 mr-2" placeholder="longitude" @bind="Longitude" />
-        </div>
+            <div class="row">
+                <div class="col-sm">
+                <label class="form-control ml-2 mr-2">Latitude</label>
+                </div>
+                <div class="col-md">
+                    <input class="form-control ml-2 mr-2" placeholder="latitude" @bind="Latitude" />
+                </div>
+            </div>
+            <div class="row" style="margin-top: 0.4em;">
+                <div class="col-sm">
+                <label class="form-control ml-2 mr-2">Longitude</label>
+                </div>
+                <div class="col-md">
+                    <input class="form-control ml-2 mr-2" placeholder="longitude" @bind="Longitude" />
+                </div>
+            </div>
         <button class="btn btn-primary mb-2" @onclick="addMarker"> Add point</button>
-        <button class="btn btn-primary mb-2" @onclick="createTestPath"> Create LA Test Path</button>
 
        
         <p>Input the Flight-ID:</p> 
