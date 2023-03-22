@@ -13,11 +13,7 @@ public class HoldingPattern
 
     public int Laps { get; set; }
 
-    public enum Direction
-    {
-        Right,
-        Left
-    }
+    public Direction Direction { get; set; }
 
     public double Leg_Distance { get; set; }
 
