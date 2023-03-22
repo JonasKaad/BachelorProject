@@ -27,5 +27,17 @@ namespace FlightPatternDetection.Controllers
 
             return Ok(data);
         }
+
+        [HttpGet("list")]
+        public ActionResult<List<string>> ListAllFallbackAircrafts()
+        {
+            var path = Path.Combine(AppContext.BaseDirectory, "FallbackHistoryData");
+            var files = System.IO.Directory.GetFiles(path);
+            var jsonFiles = files.Where(x => Path.GetExtension(x).ToLower() == ".json")
+                                .Select(x => Path.GetFileNameWithoutExtension(x) ?? string.Empty)
+                                .Where(x => !string.IsNullOrWhiteSpace(x))
+                                .ToList();
+            return Ok(jsonFiles);
+        }
     }
 }
