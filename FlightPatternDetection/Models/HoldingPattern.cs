@@ -6,8 +6,9 @@ namespace FlightPatternDetection.Models;
 [Table("Holding_Pattern")]
 public class HoldingPattern
 {
-    [Key, ForeignKey(nameof(Flight.Flight_Id))]
-    public int Flight_Id { get; set; }
+    [Key, ForeignKey(nameof(Flight.FlightId))]
+    [Column(name: "Flight_Id")]
+    public int FlightId { get; set; }
 
     public string Fixpoint { get; set; }
 

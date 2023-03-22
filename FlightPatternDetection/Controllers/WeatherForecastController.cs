@@ -2,6 +2,7 @@ using FlightPatternDetection.DTO;
 using FlightPatternDetection.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Runtime.CompilerServices;
 
 namespace FlightPatternDetection.Controllers
 {
@@ -36,11 +37,11 @@ namespace FlightPatternDetection.Controllers
         }
 
         [HttpGet("GetAirportExample")]
-        public async Task<Airport> GetAirports()
+        public async Task<List<string>> GetAirports()
         {
-            var cphAirport = await _context.Airports.FirstAsync(x => x.ICAO == "EKCH");
+            //var allAirports = await _context.Airports.ToListAsync();
 
-            return cphAirport;
+            return await _context.Airports.Select(x => x.Name).ToListAsync();
         }
 
         [HttpPost("CreateAirportExample")]
@@ -58,6 +59,31 @@ namespace FlightPatternDetection.Controllers
             _context.Airports.Add(newAirport);
             await _context.SaveChangesAsync();
             return newAirport;
+        }
+
+        [HttpGet("GetFlightExample")]
+        public async Task<Flight> GetFlights()
+        {
+            var testFlight = await _context.Flights.FirstAsync(x => x.FlightId == 1939169898);
+
+            return testFlight;
+        }
+
+        [HttpPost("CreateFlightExample")]
+        public async Task<Flight> CreateFlight(int flightId, string registration, string iCAO, string modeS, string callSign)
+        {
+            var newFlight = new Flight()
+            {
+                FlightId = flightId,
+                Registration = registration,
+                ICAO = iCAO,
+                ModeS = modeS,
+                CallSign = callSign,
+            };
+
+            _context.Flights.Add(newFlight);
+            await _context.SaveChangesAsync();
+            return newFlight;
         }
     }
 }

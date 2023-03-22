@@ -11,7 +11,7 @@ public class Flight
 
     [Key]
     [Column(name: "Flight_Id")]
-    public string FlightId { get; set; }
+    public int FlightId { get; set; }
 
     public string Registration { get; set; }
 
