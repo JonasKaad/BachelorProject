@@ -1,8 +1,11 @@
 ﻿<div class="container">
-    @ChildContent
+    @if (ChildContent is not null)
+    {
+        @ChildContent
+    }
 </div>
 
 @code {
     [Parameter]
-    public RenderFragment ChildContent { get; set; }
+    public RenderFragment? ChildContent { get; set; }
 }
