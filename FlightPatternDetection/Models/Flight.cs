@@ -14,6 +14,6 @@
 
         public string Mode_S { get; set; }
 
-        public string Call_sign { get; set; }
+        public string Call_Sign { get; set; }
     }
 }
