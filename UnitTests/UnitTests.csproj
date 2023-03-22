@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="../TrafficApiClient/TrafficApiClient.csproj" />
+    <ProjectReference Include="..\PatternDetectionEngine\PatternDetectionEngine.csproj" />
   </ItemGroup>
 
 </Project>
