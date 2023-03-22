@@ -2,6 +2,7 @@
 {
     public class Airport
     {
+        [Key]
         public string ICAO { get; set; }
 
         public string Name { get; set; }

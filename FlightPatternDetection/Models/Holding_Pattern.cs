@@ -2,7 +2,7 @@
 {
     public class Holding_Pattern
     {
-        [Key]
+        [Key, ForeignKey(nameof(Flight.Flight_Id))]
         public int Flight_Id { get; set; }
 
         public string Fixpoint { get; set; }
