@@ -1,8 +1,8 @@
 using PatternDetectionEngine;
-using TrafficApiClient;
 
 namespace UnitTests;
 
+[TestCategory("Engine")]
 [TestClass]
 public class PatternDetectionEngineTests
 {
@@ -10,15 +10,39 @@ public class PatternDetectionEngineTests
     public async Task Engine_ShouldRemovePoints()
     {
         // Arrange
-        var api = new TrafficClient("https://traffic-service.acqa.foreflight.com");
-        var apiResult = await api.HistoryAsync(1939169898, -1);
-        var apiList = apiResult.ToList();
+        var flight = UnitTestHelper.RetriveFlightData("flight_with_holding_pattern.json");
         var engine = new DetectionEngine(0.5);
         
         // Act
-        var result = engine.RemoveUnnecessaryPoints(apiList, "test");
+        var result = engine.RemoveUnnecessaryPoints(flight, "test");
 
         // Assert
-        result.Count.Should().NotBe(apiList.Count);
+        result.Count.Should().NotBe(flight.Count);
+    }
+    
+    [TestMethod]
+    public async Task Engine_ShouldNotHavePattern()
+    {
+        var flight = UnitTestHelper.RetriveFlightData("flight_without_holding_pattern.json");
+        var engine = new DetectionEngine(0.5);
+        
+        // Act
+        var result = engine.AnalyseFlight(flight);
+
+        result.Should().BeFalse();
+    }
+    
+    [TestMethod]
+    public async Task Engine_ShouldHavePattern()
+    {
+        // Arrange
+        var flight = UnitTestHelper.RetriveFlightData("flight_with_holding_pattern.json");
+        var engine = new DetectionEngine(0.5);
+        
+        // Act
+        var result = engine.AnalyseFlight(flight);
+
+        // Result
+        result.Should().BeTrue();
     }
 }
