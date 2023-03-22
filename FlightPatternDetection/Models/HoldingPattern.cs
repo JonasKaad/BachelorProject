@@ -9,7 +9,7 @@ public class HoldingPattern
     [Key, ForeignKey("Flight"), Column(name: "Flight_Id")]
     public int FlightId { get; set; }
 
-    public string Fixpoint { get; set; }
+    public string? Fixpoint { get; set; }
 
     public int Laps { get; set; }
 
