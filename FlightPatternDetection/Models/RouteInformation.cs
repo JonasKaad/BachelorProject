@@ -8,12 +8,16 @@ namespace FlightPatternDetection.Models;
 public class RouteInformation
 {
     [Key, ForeignKey(nameof(Flight.Flight_Id))]
-    public int Flight_Id { get; set; }
+    [Column(name: "Flight_Id")]
+    public int FlightId { get; set; }
     [ForeignKey(nameof(Airport.ICAO))]
-    public string Destination_ICAO { get; set; }
+    [Column(name: "Destination_ICAO")]
+    public string DestinationICAO { get; set; }
     [ForeignKey(nameof(Airport.ICAO))]
-    public string Origin_ICAO { get; set; }
+    [Column(name: "Origin_ICAO")]
+    public string OriginICAO { get; set; }
     public DateTime Takeoff_Time { get; set; }
-    public string ATC_Route { get; set; }
+    [Column(name: "ATC_Route")]
+    public string ATCRoute { get; set; }
 
 }

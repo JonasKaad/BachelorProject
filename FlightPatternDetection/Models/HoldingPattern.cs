@@ -15,7 +15,8 @@ public class HoldingPattern
 
     public Direction Direction { get; set; }
 
-    public double Leg_Distance { get; set; }
+    [Column(name: "Leg_Distance")]
+    public double LegDistance { get; set; }
 
     public double Altitude { get; set; }
 
