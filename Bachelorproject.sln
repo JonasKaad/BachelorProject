@@ -13,6 +13,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TrafficApiClient", "Traffic
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnitTests", "UnitTests\UnitTests.csproj", "{A216B741-89B3-49DA-A200-B8A4D3F1286F}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PatternDetectionEngine", "PatternDetectionEngine\PatternDetectionEngine.csproj", "{57C7178E-5CAF-424D-874E-297FD53798A6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +41,10 @@ Global
 		{A216B741-89B3-49DA-A200-B8A4D3F1286F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A216B741-89B3-49DA-A200-B8A4D3F1286F}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A216B741-89B3-49DA-A200-B8A4D3F1286F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{57C7178E-5CAF-424D-874E-297FD53798A6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{57C7178E-5CAF-424D-874E-297FD53798A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{57C7178E-5CAF-424D-874E-297FD53798A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{57C7178E-5CAF-424D-874E-297FD53798A6}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

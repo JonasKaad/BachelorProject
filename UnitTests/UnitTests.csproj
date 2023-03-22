@@ -19,6 +19,17 @@
 
   <ItemGroup>
     <ProjectReference Include="../TrafficApiClient/TrafficApiClient.csproj" />
+    <ProjectReference Include="..\PatternDetectionEngine\PatternDetectionEngine.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="resources" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="resources\*">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
