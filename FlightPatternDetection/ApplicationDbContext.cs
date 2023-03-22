@@ -25,7 +25,6 @@ public class ApplicationDbContext : DbContext
         base.OnModelCreating(modelBuilder);
         modelBuilder.Entity<RouteInformation>().Navigation(e => e.Destination).AutoInclude();
         modelBuilder.Entity<RouteInformation>().Navigation(e => e.Origin).AutoInclude();
-        //modelBuilder.Entity<HoldingPattern>().Property(p => p.Direction).HasColumnType("Direction");
         modelBuilder.Entity<HoldingPattern>().Property(e => e.Direction)
            .HasMaxLength(50)
            .HasConversion(
