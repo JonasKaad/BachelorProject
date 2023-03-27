@@ -19,12 +19,12 @@ namespace FlightPatternDetection.Services
             return null;
         }
 
-        public static string GetNullableString(this IDataRecord aRecord, string aColumnName)
+        public static string? GetNullableString(this IDataRecord aRecord, string aColumnName)
         {
             return GetNullableString(aRecord, aRecord.GetOrdinal(aColumnName));
         }
 
-        public static string GetNullableString(this IDataRecord aRecord, int aOrdinal)
+        public static string? GetNullableString(this IDataRecord aRecord, int aOrdinal)
         {
             if (!aRecord.IsDBNull(aOrdinal))
             {

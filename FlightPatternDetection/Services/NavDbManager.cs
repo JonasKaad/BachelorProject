@@ -125,10 +125,10 @@ namespace FlightPatternDetection.Services
                             var airportElevation = reader.GetInt32(airportElevationIdx);
                             var uid = reader.GetInt32(uidIdx);
                             var icao = reader[icaoIdx] as string;
-                            string city = reader.GetNullableString(cityIdx);
-                            string state = reader.GetNullableString(stateIdx);
+                            string? city = reader.GetNullableString(cityIdx);
+                            string? state = reader.GetNullableString(stateIdx);
                             int? countryId = reader.GetNullableInt32(countryIdx);
-                            string address = reader.GetNullableString(addressIdx);
+                            string? address = reader.GetNullableString(addressIdx);
 
                             var airport = new EAirport(lat, lon, identifier, airportElevation, uid, icao);
 
