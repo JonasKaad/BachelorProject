@@ -20,7 +20,7 @@ namespace FlightPatternDetection.Controllers
         }
 
         [HttpGet("Waypoints")]
-        public IEnumerable<EWayPoint> GetWayPoints(double lat, double lng, double radius=0.3)
+        public IEnumerable<EWayPoint> GetWayPoints(double lat, double lng, double radius = 0.3)
         {
             var s = Stopwatch.StartNew();
             // How big of radius around the last point, that the waypoints should be fetched for
@@ -31,6 +31,14 @@ namespace FlightPatternDetection.Controllers
             return wayPoints;
 
         }
+        [HttpGet("Airport")]
+        public EAirport GetAirport(string ICAO)
+        {
+            var airport = _navDbManager.Airports.Find(x => x.ICAO == ICAO);
+
+            return airport;
+        }
+
 
         [HttpGet("getWayPointCoordinates")]
         public List<List<Double>> GetWayPointCoordinates(double lat, double lng)
