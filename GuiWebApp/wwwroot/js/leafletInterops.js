@@ -29,9 +29,7 @@ async function addPoint(lat, lng) {
 async function addWayPoints(lat, lng, name) {
     var myIcon = L.icon({
         iconUrl: 'waypoint.svg',
-        iconSize: [10, 20],
-        //iconAnchor: [22, 94],
-        //popupAnchor: [-16, -94],
+        iconSize: [20, 20],
     });
     var latitude = lat;
     latitude = +latitude.toFixed(2);
