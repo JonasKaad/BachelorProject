@@ -48,8 +48,8 @@ namespace FlightPatternDetection.Services
             {
                 Log.LogDebug("Loading points");
                 ImportWaypointsLite();
-                ImportVHFPoints();
-                ImportNDBPoints();
+                //ImportVHFPoints();
+                //ImportNDBPoints();
 
                 Log.LogDebug($"Loaded {Waypoints.Count} Waypoints");
 
