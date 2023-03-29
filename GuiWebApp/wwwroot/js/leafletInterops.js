@@ -26,14 +26,19 @@ async function addPoint(lat, lng) {
     L.marker([lat, lng]).addTo(map);
 }
 
-async function addWayPoints(lat, lng) {
+async function addWayPoints(lat, lng, name) {
     var myIcon = L.icon({
         iconUrl: 'waypoint.svg',
         iconSize: [10, 20],
-        iconAnchor: [22, 94],
-        popupAnchor: [-3, -76],
+        //iconAnchor: [22, 94],
+        //popupAnchor: [-16, -94],
     });
-    L.marker([lat, lng], { icon: myIcon }).addTo(map);
+    var latitude = lat;
+    latitude = +latitude.toFixed(2);
+    var longitude = lng;
+    longitude = +longitude.toFixed(2);
+    let str = name + "<br>" + "Lat: " + latitude + "<br>" + "Long: " + longitude;
+    L.marker([lat, lng], { icon: myIcon }, { title: str }).addTo(map).bindPopup(str);
 }
 
 async function createPath(coordinates, color) {

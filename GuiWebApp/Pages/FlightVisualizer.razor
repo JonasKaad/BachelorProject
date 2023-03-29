@@ -184,7 +184,6 @@
 
     private async Task AddWayPoints()
     {
-        await ResetMap();
 
         StateHasChanged();
         try
@@ -211,7 +210,8 @@
             if (waypointData != null)
                 foreach (var point in waypointData)
                 {
-                    await map.AddWayPoints(point.Latitude, point.Longitude);
+                    await map.AddWayPoints(point.Latitude, point.Longitude, point.Name);
+                    //await map.AddPoint(point.Latitude, point.Longitude);
                 }
             
         }
