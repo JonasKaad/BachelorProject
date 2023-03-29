@@ -19,7 +19,7 @@ namespace FlightPatternDetection.Controllers
             _navDbManager = navDbManager;
         }
 
-        [HttpGet("getWaypoints")]
+        [HttpGet("Waypoints")]
         public IEnumerable<EWayPoint> GetWayPoints(double lat, double lng)
         {
             var s = Stopwatch.StartNew();
