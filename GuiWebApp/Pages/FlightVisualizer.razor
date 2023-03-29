@@ -67,6 +67,10 @@
             </div>
         </div>
 
+        
+        <div class="d-grid gap-2 col-6 mx-auto mt-2">
+            <button disabled="@(TrafficData is null)" class="btn-primary btn" @onclick="ReanimateFlightPath">Replay flight</button>
+        </div>
 
         @if (LastException is { } e)
         {
@@ -225,6 +229,11 @@
         {
             await CheckForHolding();
         }
+    }
+
+    private async Task ReanimateFlightPath()
+    {
+        await map.ReanimatePath();
     }
 
     private async Task FlightListItemChanged(ChangeEventArgs changeEventArgs)
