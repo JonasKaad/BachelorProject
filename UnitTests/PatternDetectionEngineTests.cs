@@ -29,7 +29,7 @@ public class PatternDetectionEngineTests
         // Act
         var result = engine.AnalyseFlight(flight);
 
-        result.Should().BeFalse();
+        result.IsHolding.Should().BeFalse();
     }
     
     [TestMethod]
@@ -43,6 +43,6 @@ public class PatternDetectionEngineTests
         var result = engine.AnalyseFlight(flight);
 
         // Result
-        result.Should().BeTrue();
+        result.IsHolding.Should().BeTrue();
     }
 }
