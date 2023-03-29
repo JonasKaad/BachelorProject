@@ -21,6 +21,11 @@ namespace GuiWebApp.Client.Services
             await _jsRuntime.InvokeVoidAsync("addPoint", lat, lng);
         }
 
+        public async Task AddWayPoints(double lat, double lng, string name)
+        {
+            await _jsRuntime.InvokeVoidAsync("addWayPoints", lat, lng, name);
+        }
+
         public async Task CreatePath(List<List<double>> coordinates, String color)
         {
             await _jsRuntime.InvokeVoidAsync("createPath", coordinates, color);

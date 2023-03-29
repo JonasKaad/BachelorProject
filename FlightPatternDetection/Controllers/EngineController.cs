@@ -57,14 +57,21 @@ namespace FlightPatternDetection.Controllers
             }
             else
             {
-                var positions = (await _trafficClient.HistoryAsync(request.FlightId, -1)).ToList();
-                if (positions.Any())
+                try
                 {
-                    return Ok(AnalyzeFlightInternal(positions));
-                }
-                else
+                    var positions = (await _trafficClient.HistoryAsync(request.FlightId, -1)).ToList();
+                    if (positions.Any())
+                    {
+                        return Ok(AnalyzeFlightInternal(positions));
+                    }
+                    else
+                    {
+                        return NotFound($"{request.FlightId} was not found on ForeFlight servers");
+                    }
+                }catch(ApiException ex)
                 {
-                    return NotFound($"{request.FlightId} was not found on ForeFlight servers");
+                    _logger.LogError($"ApiException from FF: {ex.Message}\n{ex.StackTrace}");
+                    return Problem($"Could not reach FF traffic service. Got status {ex.StatusCode}.");
                 }
             }
         }

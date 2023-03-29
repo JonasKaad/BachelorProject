@@ -1,35 +1,23 @@
 ﻿@page "/FlightVisualizer"
+@using FlightPatternDetection.DTO.NavDBEntities;
 @using GuiWebApp.Client.Services;
 @using System.Text.Json;
 @using System.Globalization;
 @inject MapService map
 @inject HttpClient httpClient
+@inject IJSRuntime jsRuntime
 
 <PageTitle>Flight Visualizer</PageTitle>
-<h3>Flight Visualizer</h3>
-
+<div class="d-flex justify-content-between align-items-center">
+    <h3>Flight Visualizer</h3>
+    <div>
+        <button @onclick="ExportCurrentFlight" class="btn btn-primary" disabled="@(TrafficData is null)" > 
+            <span class="material-symbols-outlined align">download</span> Download Flight
+        </button>
+    </div>
+</div>
 <div class="row">
-    <div class="col-xxl-3 col-xl-4">
-        <p>Input the latitude and longitude for a point below:</p>
-            <div class="row">
-                <div class="col-sm d-flex justify-content-end align-items-center">
-                    <label class="form-plaintext ml-2 mr-2">Latitude</label>
-                </div>
-                <div class="col-md">
-                    <input class="form-control ml-2 mr-2" placeholder="latitude" @bind="Latitude" />
-                </div>
-            </div>
-            <div class="row" style="margin-top: 0.4em;">
-                <div class="col-sm d-flex justify-content-end align-items-center">
-                    <label class="form-plaintext ml-2 mr-2">Longtitude</label>
-                </div>
-                <div class="col-md">
-                    <input class="form-control ml-2 mr-2" placeholder="longitude" @bind="Longitude" />
-                </div>
-            </div>
-        <button class="btn btn-primary mb-2" @onclick="AddMarker" style="margin-top: 0.4em"> Add point</button>
-
-       
+    <div class="col-xxl-3 col-xl-4">    
         <p>Input the Flight-ID:</p> 
         <div class="form-check mb-2">
             <input class="form-check-input" type="checkbox" @bind="UseFallbackApi" id="fallbackApi">
@@ -46,19 +34,50 @@
             <option value="1938200218" />
             <option value="1679057623061" />
         </datalist>
-        <div class="d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center justify-content-between mt-2">
             <div>
-            <button class="btn btn-primary" @onclick="CreateFlightPath"> Create Path for Flight ID</button>
+                <button class="btn btn-primary" @onclick="CreateFlightPath"> Create Path for Flight ID</button>
             </div>
             <div>
-            <select name="color" id="color" @bind="Color" class="form-select">
-                <option value="red">Red</option>
-                <option value="blue">Blue</option>  
-                <option value="green">Green</option>
-                <option value="yellow">Yellow</option>
-            </select>
+                <select name="color" id="color" @bind="Color" class="form-select">
+                    <option value="red">Red</option>
+                    <option value="blue">Blue</option>  
+                    <option value="green">Green</option>
+                    <option value="yellow">Yellow</option>
+                </select>
             </div>
         </div>
+        <div class="d-flex align-items-center justify-content-between">
+            <button class="btn btn-primary" @onclick="AddWayPoints" style="margin-top: 0.4em">
+            <div class="d-flex align-items-center justify-content-between">
+                    <span class="material-symbols-outlined">
+                        my_location
+                    </span> 
+                    <span class="px-1"></span> Add Waypoints
+            </div>
+            </button>
+        </div>
+        <div class="d-flex align-items-center justify-content-between mt-2">
+            <p class="m-0">Flight List: </p>
+            <div class="d-grid">
+                @if (FallbackFlights is not null)
+                {
+                    <select name="fallbackFlightsList" id="fallbackFlightsList" @onchange="FlightListItemChanged" class="form-select">
+                        @foreach (var flight in FallbackFlights)
+                        {
+                            <option value="@flight">@flight</option>
+                        }
+                    </select>
+                }
+                else
+                {
+                    <button class="btn btn-primary btn-sm" disabled="@IsCalculating" @onclick="LoadFallbackList">Load all fallback</button>
+                    <button class="btn btn-primary btn-sm" disabled="@IsCalculating" @onclick="OpenFileImporter">Import JSON file</button>
+                    <InputFile @ref="FileImporter" id="flightFileImporter" OnChange="ImportFlightList" class="d-none" />
+                }
+            </div>
+        </div>
+
 
         @if (LastException is { } e)
         {
@@ -71,10 +90,10 @@
             </div>
         }
 
-        @if (DetectingHoldingPattern)
+        @if (IsCalculating)
         {
             <div class="col mt-2 p-4 d-flex flex-column justify-content-center align-items-center">
-                <p>Detecting holding pattern...</p>
+                <p>@CalculatingText</p>
                 <Spinner Small="true" />
             </div>
         }
@@ -105,9 +124,6 @@
     </div>
 </div>
 
-
-
-
 @code {
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -132,13 +148,19 @@
     public string Color { get; set; } = "red";
 
     public Exception? LastException { get; set; }
-    public bool DetectingHoldingPattern { get; set; }
+    public bool IsCalculating { get; set; }
+    public string CalculatingText { get; set; } = string.Empty;
     public HoldingResult? LastHoldingResult { get; set; }
+
+    public List<string>? FallbackFlights { get; set; }
+
+    private InputFile? FileImporter { get; set; }
 
     private async Task CheckForHolding()
     {
         LastHoldingResult = null;
-        DetectingHoldingPattern = true;
+        IsCalculating = true;
+        CalculatingText = "Detecting holding pattern...";
         StateHasChanged();
         try
         {
@@ -157,7 +179,7 @@
                 LastException = new Exception($"Could not verify Holding Pattern. Got status: {result.StatusCode}: {result.Content}");
             }
         }finally{
-            DetectingHoldingPattern = false;
+            IsCalculating = false;
             StateHasChanged();
         }
     }
@@ -167,21 +189,52 @@
         await map.AddPoint(Latitude, Longitude);
     }
 
-    private async Task CreateTestPath()
+    private async Task AddWayPoints()
     {
-        var coords = new List<List<double>>()
+
+        StateHasChanged();
+        try
         {
-                   new (){45.51, -122.68},
-                   new (){37.77, -122.43},
-                   new (){34.04, -118.2}
-        };
-        await map.CreatePath(coords, "red");
+            var endpoint = UseFallbackApi ? "fallback" : "traffic";
+            var res = await httpClient.GetAsync($"{endpoint}/history/{FlightId}");
+
+
+            if (!res.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException($"{res.StatusCode}: {await res.Content.ReadAsStringAsync()}");
+            }
+            var data = await res.Content.ReadFromJsonAsync<List<TrafficPosition>>();
+            var lastPoint = data.Last();
+
+            var result = await httpClient.GetAsync($"NavDb/Waypoints?lat={lastPoint.Lat}&lng={lastPoint.Lon}");
+
+            if (!result.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException($"{result.StatusCode}: {await result.Content.ReadAsStringAsync()}");
+            }
+            var waypointData = await result.Content.ReadFromJsonAsync<IEnumerable<EWayPoint>>();
+
+            if (waypointData != null)
+                foreach (var point in waypointData)
+                {
+                    await map.AddWayPoints(point.Latitude, point.Longitude, point.Name);
+                }
+            
+        }
+        catch (Exception e)
+        {
+            LastException = e;
+        }
     }
 
     private async Task CreateFlightPath()
     {
+        if (FlightId <= 0 || IsLoading)
+        {
+            return;
+        }
         await ResetMap();
-
+        TrafficData = null;
         LastHoldingResult = null;
         LastException = null;
         IsLoading = true;
@@ -192,19 +245,19 @@
             var endpoint = UseFallbackApi ? "fallback" : "traffic";
             var res = await httpClient.GetAsync($"{endpoint}/history/{FlightId}");
 
-
             if (!res.IsSuccessStatusCode)
             {
                 throw new HttpRequestException($"{res.StatusCode}: {await res.Content.ReadAsStringAsync()}");
             }
-            var data = await res.Content.ReadFromJsonAsync<List<TrafficPosition>>();
+            TrafficData = await res.Content.ReadFromJsonAsync<List<TrafficPosition>>();
             var dataList = new List<List<double>>();
 
-            if (data != null)
-                foreach (var point in data)
+            if (TrafficData is not null){
+                foreach (var point in TrafficData)
                 {
                     dataList.Add(new List<double>() { point.Lat, point.Lon });
                 }
+            }
 
             await map.CreatePath(dataList, Color);
         }
@@ -223,4 +276,78 @@
         }
     }
 
+    private async Task FlightListItemChanged(ChangeEventArgs changeEventArgs)
+    {
+        if(!long.TryParse(changeEventArgs.Value as string, out long nextFlightId))
+        {
+            return;
+        }
+
+        if(nextFlightId == FlightId)
+        {
+            return;    
+        }
+
+        FlightId = nextFlightId;
+        await CreateFlightPath();
+    }
+
+    private async Task LoadFallbackList()
+    {
+        IsCalculating = true;
+        CalculatingText = "Loading fallback flights...";
+        UseFallbackApi = true;
+        StateHasChanged();
+        try
+        {
+            FallbackFlights = await httpClient.GetFromJsonAsync<List<string>>("fallback/list");
+        }
+        finally
+        {
+            IsCalculating = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OpenFileImporter()
+    {
+        await jsRuntime.InvokeVoidAsync("simulateClick", "flightFileImporter");
+    }
+
+    private async Task ImportFlightList(InputFileChangeEventArgs fileEvent)
+    {
+        if(fileEvent.File is null)
+        {
+            return;
+        }
+        IsCalculating = true;
+        CalculatingText = "Importing flights...";
+        StateHasChanged();
+        try
+        {
+            using var importStream = fileEvent.File.OpenReadStream(1024 * 1024 * 10); //Max 10 mb
+            using var fileStream = new StreamReader(importStream);
+            var fileContents = await fileStream.ReadToEndAsync();
+
+            FallbackFlights = JsonSerializer.Deserialize<List<string>>(fileContents);
+        }
+        finally
+        {
+            IsCalculating = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ExportCurrentFlight()
+    {
+        if (TrafficData is null)
+        {
+            return;
+        }
+
+        var json = JsonSerializer.Serialize(TrafficData);
+        var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json));
+        using var streamRef = new DotNetStreamReference(stream: stream);
+        await jsRuntime.InvokeVoidAsync("downloadFileFromStream", FlightId + ".json", streamRef);
+    }
 }
