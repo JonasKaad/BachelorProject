@@ -28,8 +28,13 @@ namespace FlightPatternDetection.Controllers
         [HttpGet("Airport")]
         public EAirport GetAirport(string ICAO)
         {
-            var airport = _navDbManager.Airports.Find(x => x.ICAO == ICAO);
 
+            var airport = _navDbManager.Airports.FirstOrDefault(x => x.ICAO == ICAO);
+
+            if (airport is null)
+            {
+                return new EAirport(0, 0, "_", 0, 0, $"ICAO: {ICAO} not found");
+            }
             return airport;
         }
 
