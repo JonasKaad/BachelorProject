@@ -47,3 +47,13 @@ async function createPath(coordinates, color) {
     L.featureGroup(getArrows(coordinates, 'black', 1, 5)).addTo(map);
     map.fitBounds(polyline.getBounds());
 }
+
+async function createPath(coordinates, color) {
+    L.featureGroup(getArrows(coordinates, 'black', 1, 5)).addTo(map);
+    var polyline = L.polyline(coordinates, { color: color, className: "animate" }).addTo(map);
+    map.fitBounds(polyline.getBounds());
+}
+
+async function reanimatePath() {
+    document.querySelectorAll("path.leaflet-interactive.animate").forEach(x => { x.style.animationName = "dummy"; setTimeout(function () { x.style.animationName = "dash" }, 10) });
+}
