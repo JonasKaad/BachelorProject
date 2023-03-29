@@ -1,0 +1,265 @@
+﻿@page "/MassDetection"
+@using System.Globalization;
+@using System.Diagnostics;
+@using System.Text.Json;
+@inject HttpClient httpClient
+@inject IJSRuntime jsRuntime
+<PageTitle>Flight Visualizer</PageTitle>
+<h3>Mass Detector</h3>
+
+<div class="form-check mb-2">
+    <input class="form-check-input" type="checkbox" @bind="UseFallbackApi" id="fallbackApi">
+    <label class="form-check-label" for="fallbackApi">
+        Use Fallback API?
+    </label>
+</div>
+
+<div class="form-group mb-2 position-relative">
+    @if (IsCalculating)
+    {
+        <Backdrop>
+            <h3>@CalculatingText</h3>
+            <Spinner />
+        </Backdrop>
+    }
+
+    <div class="d-flex justify-content-between align-items-center">
+        <label class="d-block" for="flightIds">Flight IDs to detect. One per line.</label>
+        <button class="btn btn-primary" @onclick="LoadFallbackList" disabled="@IsCalculating">Fetch all fallback flights</button>
+    </div>
+
+    <textarea id="flightIds" class="form-control" rows="10" placeholder="Flight IDs.." @bind="FlightIdTextArea"></textarea>
+</div>
+
+<div class="d-grid gap-2 col-6 mx-auto">
+    @if(IsCalculating && DetectionCancellation is { } token){
+        <button class="btn-danger btn" disabled="@(!IsCalculating)" @onclick="token.Cancel">Cancel detection</button>
+    }else{
+        <button class="btn-primary btn" disabled="@IsCalculating" @onclick="PerformMassDetection">Start the detection</button>
+    }
+</div>
+
+<div class="form-check mb-2 mt-2">
+    <input class="form-check-input" type="checkbox" @bind="OnlyShowHoldingPatterns" id="onlyShowHolding">
+    <label class="form-check-label" for="onlyShowHolding">
+        Only show holding patterns?
+    </label>
+</div>
+
+
+@if (DetectionResults is { } results)
+{
+    <div class="d-flex flex-column text-center justify-content-center p-4">
+        <p class="m-0">Progress: <b>@DetectionProgress</b> / <b>@results.Count</b></p>
+        <progress class="m-auto" min="0" max="@results.Count" value="@DetectionProgress" />
+    </div>
+
+    <h3>Results: 
+        @if (DetectionCancellation?.IsCancellationRequested == true)
+        {
+            <span class="badge text-bg-danger">Canceled!</span>
+        }</h3>
+
+    @if (!IsCalculating)
+    {
+        <div class="mb-3">
+            <h4>Summary:</h4>
+            <p class="m-0">Total flights analyzed: <code>@results.Count</code></p>
+            <p class="m-0">Total holding patterns found: <code>@results.Count(x=>x.Value.HoldingResult?.IsHolding == true)</code></p>
+            <p class="m-0">Total errors: <code>@results.Count(x=>x.Value.HoldingResult is null)</code></p>
+            <p class="m-0">Total time: <code>@DetectionStopwatch?.Elapsed</code></p>
+            <p class="m-0">Concurrency: <code>@MaxConcurrenctDetections</code></p>
+
+            <button class="btn btn-secondary mt-3" @onclick="ExportHoldingPatternFlights">Export all flights with holding pattern</button>
+        </div>
+    }
+    <div class="accordion" id="resultsAccordion">
+        @foreach(var (flightId, status) in results){
+            if(OnlyShowHoldingPatterns && status.HoldingResult?.IsHolding == false){ continue; }
+            <div class="accordion-item">
+            <h2 class="accordion-header">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#result-@flightId" aria-expanded="false" aria-controls="result-@flightId">
+                        <span class="badge me-3 text-bg-@(status.BootstrapColor)">@(status.ShortStatus)</span><code>@flightId</code>
+                </button>
+            </h2>
+            <div id="result-@flightId" class="accordion-collapse collapse" data-bs-parent="#resultsAccordion">
+                <div class="accordion-body">
+                        @if (status.HoldingResult is { } holdingResult){
+                            <div class="card text-bg-@(holdingResult.IsHolding ? "success" : "danger") mb-3 mt-4" style="max-width: 60rem;">
+                                <div class="card-header"><b>Holding result</b></div>
+                                <div class="card-body">
+                                    <h5 class="card-title">Is holding: @holdingResult.IsHolding</h5>
+                                    <p>Detection took: @holdingResult.DetectionTime.TotalMilliseconds.ToString("0.00", CultureInfo.InvariantCulture) ms.</p>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <p>No holding result: <pre>@status.Status</pre></p>
+                        }
+                    </div>
+            </div>
+        </div>
+        }
+    </div>
+}
+
+@code {
+    private bool OnlyShowHoldingPatterns { get; set; }
+    private bool UseFallbackApi { get; set; }
+    private string FlightIdTextArea { get; set; } = string.Empty;
+
+    private bool IsCalculating { get; set; }
+    private string CalculatingText { get; set; } = string.Empty;
+
+    private int DetectionProgress { get; set; }
+    private Dictionary<long, HoldingResultWrapper>? DetectionResults  { get; set; }
+    private CancellationTokenSource? DetectionCancellation { get; set; }
+    private Stopwatch? DetectionStopwatch{ get; set; }
+
+    private const int MaxConcurrenctDetections = 4;
+    private readonly SemaphoreSlim Semaphore = new SemaphoreSlim(MaxConcurrenctDetections, MaxConcurrenctDetections);
+
+    private async Task PerformMassDetection()
+    {
+        if (string.IsNullOrWhiteSpace(FlightIdTextArea))
+        {
+            return;
+        }
+        var allLines = FlightIdTextArea.Trim().Split('\n').ToList();
+        var detectionResults = new Dictionary<long, HoldingResultWrapper>();
+        var allIds = new List<long>();
+        foreach(var line in allLines)
+        {
+            if(long.TryParse(line, out var parsed))
+            {
+                allIds.Add(parsed);
+                detectionResults.Add(parsed, new());
+            }
+        }
+
+        if(allIds.Count == 0)
+        {
+            return;
+        }
+
+        DetectionResults = detectionResults;
+        IsCalculating = true;
+        CalculatingText = "Detecting patterns...";
+        DetectionProgress = 0;
+        DetectionCancellation = new CancellationTokenSource();
+        DetectionStopwatch = Stopwatch.StartNew();
+        StateHasChanged();
+        try
+        {
+            var tasks = new List<Task>();
+            foreach(var flightId in allIds)
+            {
+                if(DetectionCancellation?.IsCancellationRequested == true)
+                {
+                    return;
+                }
+                await Semaphore.WaitAsync();
+                tasks.Add(Task.Run(async () =>
+                {
+                    try
+                    {
+                        var result = await httpClient.PostAsJsonAsync("Engine/analyze", new AnalyzeFlightRequest()
+                            {
+                                FlightId = flightId,
+                                UseFallback = UseFallbackApi
+                            });
+
+                        if (result.IsSuccessStatusCode)
+                        {
+                            DetectionResults[flightId].HoldingResult = await result.Content.ReadFromJsonAsync<HoldingResult>();
+                            DetectionResults[flightId].Status = DetectionResults[flightId].HoldingResult?.IsHolding == true ? "Holding" : "Not Holding";
+                        }
+                        else
+                        {
+                            DetectionResults[flightId].Status = $"HTTP Error: {result.StatusCode}: {result.Content}";
+                        }
+                    }
+                    finally
+                    {
+                        if (++DetectionProgress % 200 == 0)
+                        {
+                            StateHasChanged();
+                        }
+                        Semaphore.Release();
+                    }
+                }));
+            }
+
+            await Task.WhenAll(tasks); //Wait for the last to finish..
+        }
+        finally
+        {
+            if (!DetectionCancellation.IsCancellationRequested)
+            {
+                DetectionProgress = DetectionResults.Count;
+            }
+            DetectionStopwatch.Stop();
+            IsCalculating = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadFallbackList()
+    {
+        IsCalculating = true;
+        CalculatingText = "Loading fallback flights...";
+        UseFallbackApi = true;
+        StateHasChanged();
+        try
+        {
+            var flights = await httpClient.GetFromJsonAsync<List<string>>("fallback/list");
+            if (flights is not null)
+            {
+                FlightIdTextArea = string.Join("\n", flights);
+            }
+        }
+        finally
+        {
+            IsCalculating = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ExportHoldingPatternFlights()
+    {
+        if (DetectionResults is null)
+        {
+            return;
+        }
+
+        var flightIdsWithHoldingPatterns = DetectionResults.Where(x => x.Value?.HoldingResult?.IsHolding == true).Select(x => x.Key.ToString(CultureInfo.InvariantCulture)).ToList();
+        var json = JsonSerializer.Serialize(flightIdsWithHoldingPatterns);
+        var stream = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(json));
+        using var streamRef = new DotNetStreamReference(stream: stream);
+        await jsRuntime.InvokeVoidAsync("downloadFileFromStream", "holding_patterns_flight_ids.json", streamRef);
+    }
+
+    private class HoldingResultWrapper
+    {
+        public HoldingResult? HoldingResult { get; set; }
+
+        public string Status { get; set; } = "Waiting";
+
+        public string BootstrapColor => Status switch 
+        {
+            "Waiting" => "info",
+            "Holding" => "success",
+            "Not Holding" => "danger",
+            _ => "danger"
+        };
+
+        public string ShortStatus => Status switch
+        {
+            "Waiting" => "Waiting",
+            "Holding" => "Holding",
+            "Not Holding" => "Not Holding",
+            _ => "Error"
+        };
+    }
+}
