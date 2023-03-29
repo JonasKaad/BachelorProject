@@ -76,7 +76,7 @@ namespace FlightPatternDetection.Controllers
             }
         }
 
-        private HoldingResult AnalyzeFlightInternal(List<TrafficPosition> flight)
+        private async Task<HoldingResult> AnalyzeFlightInternal(List<TrafficPosition> flight)
         {
             if (flight.Count == 0)
             {
@@ -87,7 +87,7 @@ namespace FlightPatternDetection.Controllers
                 };
             }
 
-            var isHolding = _simpleDetectionEngine.AnalyseFlight(flight);
+            var isHolding = await _simpleDetectionEngine.AnalyseFlight(flight);
 
             return isHolding;
         }
