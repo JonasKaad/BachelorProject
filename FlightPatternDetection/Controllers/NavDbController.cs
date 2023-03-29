@@ -20,11 +20,11 @@ namespace FlightPatternDetection.Controllers
         }
 
         [HttpGet("Waypoints")]
-        public IEnumerable<EWayPoint> GetWayPoints(double lat, double lng)
+        public IEnumerable<EWayPoint> GetWayPoints(double lat, double lng, double radius=0.3)
         {
             var s = Stopwatch.StartNew();
-
-            var wayPoints = _navDbManager.Waypoints.FindAll(x => ((x.Latitude + 1) >= lat && lat >= (x.Latitude - 1)) && (x.Longitude + 1 >= lng && lng >= (x.Longitude))).ToList();
+            // How big of radius around the last point, that the waypoints should be fetched for
+            var wayPoints = _navDbManager.Waypoints.FindAll(x => ((x.Latitude + radius) >= lat && lat >= (x.Latitude - radius)) && (x.Longitude + radius >= lng && lng >= (x.Longitude - radius))).ToList();
             s.Stop();
             _logger.LogDebug($"Found {wayPoints.Count} points in {s.Elapsed}");
 
