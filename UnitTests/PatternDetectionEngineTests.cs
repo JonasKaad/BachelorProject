@@ -7,40 +7,40 @@ namespace UnitTests;
 public class PatternDetectionEngineTests
 {
     [TestMethod]
-    public void Engine_ShouldRemovePoints()
+    public async Task Engine_ShouldRemovePoints()
     {
         // Arrange
         var flight = UnitTestHelper.RetriveFlightData("flight_with_holding_pattern.json");
         var engine = new DetectionEngine(0.5);
         
         // Act
-        var result = engine.RemoveUnnecessaryPoints(flight, "test");
+        var result = await engine.RemoveUnnecessaryPoints(flight);
 
         // Assert
         result.Count.Should().NotBe(flight.Count);
     }
     
     [TestMethod]
-    public void Engine_ShouldNotHavePattern()
+    public async Task Engine_ShouldNotHavePattern()
     {
         var flight = UnitTestHelper.RetriveFlightData("flight_without_holding_pattern.json");
         var engine = new DetectionEngine(0.5);
         
         // Act
-        var result = engine.AnalyseFlight(flight);
+        var result = await engine.AnalyseFlight(flight);
 
         result.IsHolding.Should().BeFalse();
     }
     
     [TestMethod]
-    public void Engine_ShouldHavePattern()
+    public async Task Engine_ShouldHavePattern()
     {
         // Arrange
         var flight = UnitTestHelper.RetriveFlightData("flight_with_holding_pattern.json");
         var engine = new DetectionEngine(0.5);
         
         // Act
-        var result = engine.AnalyseFlight(flight);
+        var result = await engine.AnalyseFlight(flight);
 
         // Result
         result.IsHolding.Should().BeTrue();

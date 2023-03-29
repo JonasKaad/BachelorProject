@@ -1,5 +1,7 @@
 ﻿using System.Diagnostics;
+using System.Net.Http.Json;
 using FlightPatternDetection.DTO;
+using FlightPatternDetection.DTO.NavDBEntities;
 using TrafficApiClient;
 
 namespace PatternDetectionEngine;
@@ -7,19 +9,22 @@ namespace PatternDetectionEngine;
 public class DetectionEngine
 {
     private double CheckDistance { get; }
-    private const int InvertedHeadingCount = 0;
+    private const int InvertedHeadingCount = 2;
     private const int InvertedHeadingBuffer = 5;
     private const int AltitudeBuffer = 200;
+    private readonly HttpClient _httpClient;
 
     public DetectionEngine(double checkDistance)
     {
         CheckDistance = checkDistance;
+        _httpClient = new HttpClient();
+        _httpClient.BaseAddress = new Uri("http://localhost/", UriKind.Absolute);
     }
     
-    public HoldingResult AnalyseFlight(List<TrafficPosition> flightData)
+    public async Task<HoldingResult> AnalyseFlight(List<TrafficPosition> flightData)
     {
         var startTime = Stopwatch.StartNew();
-        var cleanedData = RemoveUnnecessaryPoints(flightData, "test");
+        var cleanedData = await RemoveUnnecessaryPoints(flightData);
         var patternResult = CheckForPattern(cleanedData);
 
         // This should return true if there is a holding pattern and false otherwise
@@ -77,16 +82,37 @@ public class DetectionEngine
         return point.Alt > second.Alt - AltitudeBuffer && point.Alt < second.Alt + AltitudeBuffer;
     }
 
-    public List<TrafficPosition> RemoveUnnecessaryPoints(List<TrafficPosition> flightData, string destAirport)
+    public async Task<List<TrafficPosition>> RemoveUnnecessaryPoints(List<TrafficPosition> flightData)
     {
         // Could use navdb to get lat and long for destination airport instead of using last point.
 
         var lastLat = flightData.Last().Lat;
         var lastLon = flightData.Last().Lon;
 
+        EAirport? dest = null;
+        
+        try
+        {
+            var airportResponse = await _httpClient.GetAsync($"NavDb/Airport?ICAO={flightData.Last().Airport}");
+            
+            if (airportResponse.IsSuccessStatusCode)
+            {
+                dest = await airportResponse.Content.ReadFromJsonAsync<EAirport>();
+            }
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
+
+        var zeroedAltitude = 0.0;
+        if (dest is not null)
+            zeroedAltitude = dest.Elevation;
+        
+
         return flightData.Where(f =>
             WithinDistance(f.Lat, lastLat) && WithinDistance(f.Lon, lastLon))
-            .Where(p => p.Alt > 5000).ToList();
+            .Where(p => p.Alt > zeroedAltitude + 1000).ToList();
     }
 
     private bool WithinDistance(double pointToCheck, double pointBoundary)
