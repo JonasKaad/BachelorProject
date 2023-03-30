@@ -1,4 +1,5 @@
 ﻿@page "/FlightVisualizer"
+@using FlightPatternDetection.DTO.NavDBEntities;
 @using GuiWebApp.Client.Services;
 @using System.Text.Json;
 @using System.Globalization;
@@ -45,6 +46,16 @@
                     <option value="yellow">Yellow</option>
                 </select>
             </div>
+        </div>
+        <div class="d-flex align-items-center justify-content-between">
+            <button class="btn btn-primary" @onclick="AddWayPoints" style="margin-top: 0.4em">
+            <div class="d-flex align-items-center justify-content-between">
+                    <span class="material-symbols-outlined">
+                        my_location
+                    </span> 
+                    <span class="px-1"></span> Add Waypoints
+            </div>
+            </button>
         </div>
         <div class="d-flex align-items-center justify-content-between mt-2">
             <p class="m-0">Flight List: </p>
@@ -180,6 +191,44 @@
     private async Task AddMarker()
     {
         await map.AddPoint(Latitude, Longitude);
+    }
+
+    private async Task AddWayPoints()
+    {
+
+        StateHasChanged();
+        try
+        {
+            var endpoint = UseFallbackApi ? "fallback" : "traffic";
+            var res = await httpClient.GetAsync($"{endpoint}/history/{FlightId}");
+
+
+            if (!res.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException($"{res.StatusCode}: {await res.Content.ReadAsStringAsync()}");
+            }
+            var data = await res.Content.ReadFromJsonAsync<List<TrafficPosition>>();
+            var lastPoint = data.Last();
+
+            var result = await httpClient.GetAsync($"NavDb/Waypoints?lat={lastPoint.Lat}&lng={lastPoint.Lon}");
+
+            if (!result.IsSuccessStatusCode)
+            {
+                throw new HttpRequestException($"{result.StatusCode}: {await result.Content.ReadAsStringAsync()}");
+            }
+            var waypointData = await result.Content.ReadFromJsonAsync<IEnumerable<EWayPoint>>();
+
+            if (waypointData != null)
+                foreach (var point in waypointData)
+                {
+                    await map.AddWayPoints(point.Latitude, point.Longitude, point.Name);
+                }
+            
+        }
+        catch (Exception e)
+        {
+            LastException = e;
+        }
     }
 
     private async Task CreateFlightPath()
