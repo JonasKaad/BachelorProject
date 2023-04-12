@@ -34,9 +34,6 @@ public class DetectionEngine
 
     private HoldingResult CheckForPattern(List<TrafficPosition> cleanedData)
     {
-        var headingCount = cleanedData.Sum(
-            point => cleanedData.Where(secondPoint => secondPoint.Heading != point.Heading)
-                .Count(secondPoint => point.Heading == secondPoint.Heading + 180 % 360));
         TrafficPosition? firstInversionPoint = null;
         var manualHeadCount = 0;
         foreach (var point in cleanedData)
@@ -60,7 +57,11 @@ public class DetectionEngine
                 IsHolding = false
             };
         var secondHolding = cleanedData.SkipWhile(p => p != firstInversionPoint).SkipWhile(p => p.Heading == firstInversionPoint.Heading)
-            .Take(1).First();
+            .Take(1).FirstOrDefault();
+        if (secondHolding is null)
+        {
+            return new();
+        }
         var headingDiff = firstInversionPoint.Heading - secondHolding.Heading; // Positive: Right, Negative: Left
         var holdingPattern = new HoldingResult()
         {
@@ -112,7 +113,7 @@ public class DetectionEngine
 
         return flightData.Where(f =>
             WithinDistance(f.Lat, lastLat) && WithinDistance(f.Lon, lastLon))
-            .Where(p => p.Alt > zeroedAltitude + 1000).ToList();
+            .Where(p => p.Alt > zeroedAltitude + 5000).ToList();
     }
 
     private bool WithinDistance(double pointToCheck, double pointBoundary)
