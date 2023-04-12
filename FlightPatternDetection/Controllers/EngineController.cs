@@ -48,7 +48,7 @@ namespace FlightPatternDetection.Controllers
 
                 if (result.Result is OkObjectResult okResult && okResult.Value is List<TrafficPosition> positions)
                 {
-                    return Ok(AnalyzeFlightInternal(positions));
+                    return Ok(await AnalyzeFlightInternal(positions));
                 }
                 else
                 {
@@ -62,7 +62,7 @@ namespace FlightPatternDetection.Controllers
                     var positions = (await _trafficClient.HistoryAsync(request.FlightId, -1)).ToList();
                     if (positions.Any())
                     {
-                        return Ok(AnalyzeFlightInternal(positions));
+                        return Ok(await AnalyzeFlightInternal(positions));
                     }
                     else
                     {
