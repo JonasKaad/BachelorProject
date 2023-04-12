@@ -46,7 +46,8 @@ let currentCoords = [];
 
 async function createPath(coordinates, color) {
     //var polyline = L.polyline(coordinates, { color: color, className: 'animate' }).addTo(map);
-    var polyline = L.polyline(coordinates, { color: color, snakingSpeed: 600 }).addTo(map).snakeIn();
+    var polyline = L.polyline(coordinates, { color: color, snakingSpeed: 600 }).addTo(map)
+    polyline.snakeIn();
     //var po = L.polyline(coordinates).addTo(map);
     //L.featureGroup(getArrows(coordinates, 'black', 1, 5)).addTo(map);
     //map.fitBounds(L.latLngBounds(corner1, corner2), true);

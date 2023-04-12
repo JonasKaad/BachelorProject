@@ -35,7 +35,7 @@ L.Polyline.include({
 
         if (!('performance' in window) ||
             !('now' in window.performance) ||
-            !this._map) {
+            !map) {
             return;
         }
 
@@ -76,9 +76,9 @@ L.Polyline.include({
     _snakeForward: function (forward) {
         forward = (forward == 0 ? 0.00000000001 : forward);
         // Calculate distance from current vertex to next vertex
-        var currPoint = this._map.latLngToContainerPoint(
+        var currPoint = map.latLngToContainerPoint(
             this._snakeLatLngs[this._snakingRings][this._snakingVertices]);
-        var nextPoint = this._map.latLngToContainerPoint(
+        var nextPoint = map.latLngToContainerPoint(
             this._snakeLatLngs[this._snakingRings][this._snakingVertices + 1]);
 
         var distance = currPoint.distanceTo(nextPoint);
@@ -116,7 +116,7 @@ L.Polyline.include({
         );
 
         // Put a new head in place.
-        var headLatLng = this._map.containerPointToLatLng(headPoint);
+        var headLatLng = map.containerPointToLatLng(headPoint);
         this._latlngs[this._snakingRings].push(headLatLng);
 
         this.setLatLngs(this._latlngs);
@@ -152,7 +152,7 @@ L.LayerGroup.include({
 
         if (!('performance' in window) ||
             !('now' in window.performance) ||
-            !this._map ||
+            !map ||
             this._snaking) {
             return;
         }
