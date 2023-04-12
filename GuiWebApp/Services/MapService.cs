@@ -30,6 +30,15 @@ namespace GuiWebApp.Client.Services
         {
             await _jsRuntime.InvokeVoidAsync("createPath", coordinates, color);
         }
+        public async Task RedrawFlight()
+        {
+            await _jsRuntime.InvokeVoidAsync("redrawFlight");
+        }
+
+        public async Task ResetView()
+        {
+            await _jsRuntime.InvokeVoidAsync("resetView");
+        }
 
         public async Task ReanimatePath()
         {
