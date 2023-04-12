@@ -24,6 +24,9 @@ async function createMap(lat, lng, zoomValue) {
 
 async function addPoint(lat, lng) {
     L.marker([lat, lng]).addTo(map);
+
+async function reanimatePath() {
+    document.querySelectorAll("path.leaflet-interactive.animate").forEach(x => { x.style.animationName = "dummy"; setTimeout(function () { x.style.animationName = "dash" }, 10) });
 }
 
 async function addWayPoints(lat, lng, name) {
