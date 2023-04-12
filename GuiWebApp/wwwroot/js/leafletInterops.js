@@ -44,6 +44,6 @@ async function addWayPoints(lat, lng, name) {
 
 async function createPath(coordinates, color) {
     var polyline = L.polyline(coordinates, { color: color, className: 'animate' }).addTo(map);
-    L.featureGroup(getArrows(coordinates, 'black', 1, 8)).addTo(map);
+    L.featureGroup(getArrows(coordinates, 'black', 1, 5)).addTo(map);
     map.fitBounds(polyline.getBounds());
 }
