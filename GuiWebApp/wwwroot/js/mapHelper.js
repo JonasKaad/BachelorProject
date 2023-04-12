@@ -16,10 +16,7 @@ function getArrows(arrLatlngs, color, arrowCount, animationLength = 8) {
     var result = [];
     for (var i = 1; i < arrLatlngs.length - 1; i++) {
         if (i % 20 !== 0) { continue; }
-        //let animationDelayForItem = (i / arrLatlngs.length) * animationLength / 2;
-        let animationDelayForItem = animationLength;
-        console.log(i, arrLatlngs.length, animationDelayForItem)
-        let animationStyle = "animation:leafletArrowFade 1s " + animationDelayForItem + "s forwards;opacity:0;";
+        let animationStyle = "animation:leafletArrowFade 1s " + animationLength + "s forwards;opacity:0;";
         var icon = L.divIcon({ className: 'arrow-icon', bgPos: [5, 5], html: '<div style="' + color + ';' + animationStyle + ';transform: rotate(' + getAngle(arrLatlngs[i - 1], arrLatlngs[i], -1).toString() + 'deg)">▶</div>' });
         for (var c = 1; c <= arrowCount; c++) {
             let p2 = arrLatlngs[i - 1];
