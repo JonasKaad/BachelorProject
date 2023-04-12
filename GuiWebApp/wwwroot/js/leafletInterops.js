@@ -25,9 +25,6 @@ async function createMap(lat, lng, zoomValue) {
 async function addPoint(lat, lng) {
     L.marker([lat, lng]).addTo(map);
 }
-async function reanimatePath() {
-    document.querySelectorAll("path.leaflet-interactive.animate").forEach(x => { x.style.animationName = "dummy"; setTimeout(function () { x.style.animationName = "dash" }, 10) });
-}
 
 async function addWayPoints(lat, lng, name) {
     var myIcon = L.icon({
@@ -44,16 +41,9 @@ async function addWayPoints(lat, lng, name) {
 
 async function createPath(coordinates, color) {
     var polyline = L.polyline(coordinates, { color: color, className: 'animate' }).addTo(map);
-    L.featureGroup(getArrows(coordinates, 'black', 1, 5)).addTo(map);
+    L.featureGroup(getArrows(coordinates, 'black', 1, 8)).addTo(map);
     map.fitBounds(polyline.getBounds());
 }
-
-async function createPath(coordinates, color) {
-    L.featureGroup(getArrows(coordinates, 'black', 1, 5)).addTo(map);
-    var polyline = L.polyline(coordinates, { color: color, className: "animate" }).addTo(map);
-    map.fitBounds(polyline.getBounds());
-}
-
 async function reanimatePath() {
     document.querySelectorAll("path.leaflet-interactive.animate").forEach(x => { x.style.animationName = "dummy"; setTimeout(function () { x.style.animationName = "dash" }, 10) });
 }
