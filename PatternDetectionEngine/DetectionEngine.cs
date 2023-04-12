@@ -26,8 +26,7 @@ public class DetectionEngine
         var startTime = Stopwatch.StartNew();
         var cleanedData = await RemoveUnnecessaryPoints(flightData);
         var patternResult = CheckForPattern(cleanedData);
-
-        // This should return true if there is a holding pattern and false otherwise
+        
         patternResult.DetectionTime = startTime.Elapsed;
         return patternResult;
     }
@@ -35,17 +34,21 @@ public class DetectionEngine
     private HoldingResult CheckForPattern(List<TrafficPosition> cleanedData)
     {
         TrafficPosition? firstInversionPoint = null;
+        TrafficPosition? lastInversionPoint = null;
         var manualHeadCount = 0;
+        var points = new List<TrafficPosition>();
         foreach (var point in cleanedData)
         {
             foreach (var second in cleanedData)
             {
                 if(second.Heading == point.Heading)
                     continue;
-                if (IsInvertedHeading(point, second) && IsSameAltitude(point, second))
+                if (IsInvertedHeading(point, second) && IsSameAltitude(point, second) && IsRecentEnough(point, second))
                 {
                     manualHeadCount++;
+                    points.Add(points.Contains(point) ? second : point);
                     firstInversionPoint ??= point;
+                    lastInversionPoint = point;
                     break;
                 }
             }
@@ -56,21 +59,45 @@ public class DetectionEngine
             {
                 IsHolding = false
             };
-        var secondHolding = cleanedData.SkipWhile(p => p != firstInversionPoint).SkipWhile(p => p.Heading == firstInversionPoint.Heading)
-            .Take(1).FirstOrDefault();
-        if (secondHolding is null)
-        {
+        var headingDiff = CalculateDirection(cleanedData, firstInversionPoint);
+        if (headingDiff is null)
             return new();
-        }
-        var headingDiff = firstInversionPoint.Heading - secondHolding.Heading; // Positive: Right, Negative: Left
+
+        var laps = CalculateLaps(cleanedData, firstInversionPoint, lastInversionPoint);
+        Console.WriteLine(cleanedData.First().Lat);
+        Console.WriteLine(cleanedData.First().Lon);
         var holdingPattern = new HoldingResult()
         {
             IsHolding = manualHeadCount > InvertedHeadingCount,
             Direction = headingDiff > 0 ? HoldingDirection.Left : HoldingDirection.Right,
             Altitude = firstInversionPoint.Alt,
-            Laps = manualHeadCount
+            Laps = laps
         };
         return holdingPattern;
+    }
+
+    private bool IsRecentEnough(TrafficPosition point, TrafficPosition second)
+    {
+        return second.Clock - point.Clock < 250 && second.Clock - point.Clock > 90;
+    }
+
+    private int CalculateLaps(List<TrafficPosition> cleanedData, TrafficPosition firstInversionPoint, TrafficPosition lastInversionPoint)
+    {
+        return (int)Math.Round((lastInversionPoint.Clock - firstInversionPoint.Clock) / 60.0);
+    }
+
+    private static double? CalculateDirection(List<TrafficPosition> cleanedData, TrafficPosition firstInversionPoint)
+    {
+        var secondHolding = cleanedData.SkipWhile(p => p != firstInversionPoint)
+            .SkipWhile(p => p.Heading == firstInversionPoint.Heading)
+            .Take(1).FirstOrDefault();
+        
+        if (secondHolding is null)
+        {
+            return null;
+        }
+
+        return firstInversionPoint.Heading - secondHolding.Heading; // Positive: Right, Negative: Left
     }
 
     private bool IsInvertedHeading(TrafficPosition point, TrafficPosition second)
@@ -94,26 +121,27 @@ public class DetectionEngine
         
         try
         {
-            var airportResponse = await _httpClient.GetAsync($"NavDb/Airport?ICAO={flightData.Last().Airport}");
+            var airportResponse = await _httpClient.GetAsync($"NavDb/Airport?ICAO={flightData.Last().Dest}");
             
             if (airportResponse.IsSuccessStatusCode)
             {
                 dest = await airportResponse.Content.ReadFromJsonAsync<EAirport>();
             }
         }
-        catch (Exception e)
+        catch (HttpRequestException e)
         {
-            Console.WriteLine(e);
+            Console.WriteLine(e.InnerException);
         }
 
         var zeroedAltitude = 0.0;
         if (dest is not null)
             zeroedAltitude = dest.Elevation;
+
         
 
         return flightData.Where(f =>
             WithinDistance(f.Lat, lastLat) && WithinDistance(f.Lon, lastLon))
-            .Where(p => p.Alt > zeroedAltitude + 5000).ToList();
+            .Where(p => p.Alt > zeroedAltitude + 7000).ToList();
     }
 
     private bool WithinDistance(double pointToCheck, double pointBoundary)
