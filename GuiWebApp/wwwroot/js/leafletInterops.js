@@ -43,19 +43,66 @@ async function addWayPoints(lat, lng, name) {
 }
 
 let currentCoords = [];
+let currentColor = '';
 
+//async function createPath(coordinates, color) {
+//    var polyline = L.polyline(coordinates, { color: color, snakingSpeed: 600 }).addTo(map)
+//    polyline.snakeIn();
+//    L.featureGroup(getArrows(coordinates, 'black', 1, 5)).addTo(map);
+//    currentCoords = coordinates;
+//    currentColor = color;
+//    map.fitBounds(L.latLngBounds(coordinates));
+//}
 async function createPath(coordinates, color) {
-    //var polyline = L.polyline(coordinates, { color: color, className: 'animate' }).addTo(map);
-    var polyline = L.polyline(coordinates, { color: color, snakingSpeed: 600 }).addTo(map)
-    polyline.snakeIn();
-    //var po = L.polyline(coordinates).addTo(map);
-    //L.featureGroup(getArrows(coordinates, 'black', 1, 5)).addTo(map);
-    //map.fitBounds(L.latLngBounds(corner1, corner2), true);
-    // map.flyToBounds(L.latLngBounds(corner1, corner2));
-    //map.zoomOut();
+    var hotlineLayer = L.hotline(coordinates, {
+        min: 1000,
+        max: 42000,
+        palette: {
+            0.0: '#008800',
+            0.5: '#ffff00',
+            1.0: '#ff0000'
+        },
+        weight: 5,
+        outlineColor: '#000000',
+        outlineWidth: 1
+    }).addTo(map)
+    hotlineLayer.snakeIn();
+    L.featureGroup(getArrows(coordinates, 'black', 1, 5)).addTo(map);
     currentCoords = coordinates;
+    currentColor = color;
     map.fitBounds(L.latLngBounds(coordinates));
-    //map.setZoom(6);
+
+
+
+
+
+    ['weight', 'outlineWidth', 'min', 'max', 'smoothFactor'].forEach(function (value) {
+        document.getElementById(value).addEventListener('input', function () {
+            var style = {};
+            style[value] = parseInt(this.value, 10);
+            hotlineLayer.setStyle(style).redraw();
+        });
+    });
+
+    document.getElementById('outlineColor').addEventListener('input', function () {
+        hotlineLayer.setStyle({ 'outlineColor': this.value }).redraw();
+    });
+
+    var paletteColor1 = document.getElementById('paletteColor1');
+    var paletteColor2 = document.getElementById('paletteColor2');
+    var paletteColor3 = document.getElementById('paletteColor3');
+    [paletteColor1, paletteColor2, paletteColor3].forEach(function (element) {
+        element.addEventListener('input', updatePalette);
+    });
+    function updatePalette() {
+        hotlineLayer.setStyle({
+            'palette': {
+                0.0: paletteColor1.value,
+                0.5: paletteColor2.value,
+                1.0: paletteColor3.value
+            }
+        }).redraw();
+    }
 }
 
 async function resetView() {
@@ -67,7 +114,7 @@ async function resetView() {
 
 async function redrawFlight() {
     resetView();
-    L.polyline(currentCoords, { color: "red", snakingSpeed: 600 }).addTo(map).snakeIn();
+    L.polyline(currentCoords, { color: currentColor, snakingSpeed: 600 }).addTo(map).snakeIn();
 }
 
 async function redrawHoldingPattern(coordinates, color) {

@@ -259,7 +259,7 @@
             if (TrafficData is not null){
                 foreach (var point in TrafficData)
                 {
-                    dataList.Add(new List<double>() { point.Lat, point.Lon });
+                    dataList.Add(new List<double>() { point.Lat, point.Lon, point.Alt });
                 }
             }
 
