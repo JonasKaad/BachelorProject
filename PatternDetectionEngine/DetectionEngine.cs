@@ -63,7 +63,6 @@ public class DetectionEngine
     {
         TrafficPosition? firstInversionPoint = null;
         TrafficPosition? lastInversionPoint = null;
-        var manualHeadCount = 0;
         var foundHoldings = new List<List<TrafficPosition>>();
         var cleanedDataCopy = new List<TrafficPosition>(cleanedData);
         const int pointsToTake = 10;
@@ -87,7 +86,6 @@ public class DetectionEngine
 
                         firstInversionPoint ??= lastPointInCurrentHeading;
                         lastInversionPoint = nextPoint;
-                        manualHeadCount++;
                     }
                     else
                     {
@@ -147,8 +145,17 @@ public class DetectionEngine
         var headingDiff = CalculateDirection(cleanedData, firstInversionPoint);
         if (headingDiff is null)
             return new();
+        
+        var fixPoint = FindHoldingFixPoint(cleanedData, firstInversionPoint, lastInversionPoint, theHoldingPattern) ??
+                    new EWayPoint(
+                        theHoldingPattern.First().Lat,
+                        theHoldingPattern.First().Lon, 
+                        "FIX",
+                        -1)
+                    {
+                        Name = "FIXPOINT"
+                    };
 
-        //var laps = CalculateLaps(cleanedData, firstInversionPoint, lastInversionPoint);
         int laps = (int)Math.Ceiling(theHoldingPattern.Count / 2d);
 
         var holdingPattern = new HoldingResult()
@@ -156,9 +163,58 @@ public class DetectionEngine
             IsHolding = foundHoldings.Any(),
             Direction = headingDiff > 0 ? HoldingDirection.Left : HoldingDirection.Right,
             Altitude = firstInversionPoint.Alt,
-            Laps = laps
+            Laps = laps,
+            FixPoint = fixPoint
         };
         return holdingPattern;
+    }
+
+    private EWayPoint? FindHoldingFixPoint(List<TrafficPosition> cleanedData, TrafficPosition firstInversionPoint, TrafficPosition lastInversionPoint, List<TrafficPosition> holdingPoints)
+    {
+        if (_navDbManager is null)
+            return null;
+        var firstIndex = cleanedData.IndexOf(firstInversionPoint);
+        var lastIndex = cleanedData.IndexOf(lastInversionPoint);
+        var holdingPointsInHolding = cleanedData.Skip(firstIndex).Take(lastIndex);
+        var trafficPositions = holdingPointsInHolding.ToList();
+        EWayPoint? possibleFixPoint = null;
+        const double pointBuffer = 0.25;
+        var lonDiff = 180.0;
+        var latDiff = 90.0;
+
+        var waypointsAroundHolding = _navDbManager.Waypoints.Where(waypoint => 
+            IsCloseEnough(waypoint, firstInversionPoint, pointBuffer)
+        ).ToList();
+        
+        foreach (var point in trafficPositions)
+        {
+            var closePoints = waypointsAroundHolding.Where(p => 
+                holdingPoints.Any(h => IsCloseEnough(p, h, 0.025))
+            ).ToList();
+            if (closePoints.Any())
+                return closePoints.First();
+
+            if (!waypointsAroundHolding.Any())
+                continue;
+            foreach (var fixPoint in waypointsAroundHolding)
+            {
+                var pointLonDiff = Math.Abs(fixPoint.Longitude - point.Lon);
+                var pointLatDiff = Math.Abs(fixPoint.Latitude - point.Lat);
+                if (pointLatDiff + pointLonDiff > lonDiff + latDiff)
+                    continue;                                                
+                possibleFixPoint = fixPoint;                                
+                lonDiff = pointLonDiff;
+                latDiff = pointLatDiff;
+            }
+        }
+
+        return possibleFixPoint;
+    }
+
+    private bool IsCloseEnough(EWayPoint waypoint, TrafficPosition point, double buffer)
+    {
+        return waypoint.Longitude >= point.Lon - buffer && waypoint.Longitude <= point.Lon + buffer &&
+               waypoint.Latitude >= point.Lat - buffer && waypoint.Latitude <= point.Lat + buffer;
     }
 
     private bool IsRecentEnough(TrafficPosition point, TrafficPosition second)
