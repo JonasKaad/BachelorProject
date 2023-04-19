@@ -4,7 +4,7 @@ using System.Data;
 
 namespace FlightPatternDetection.Services
 {
-    public class NavDbManager
+    public class NavDbManager : INavDbManager
     {
         #region Fields
         private ILogger<NavDbManager> Log { get; }

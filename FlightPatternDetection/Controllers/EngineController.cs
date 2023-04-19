@@ -30,7 +30,7 @@ namespace FlightPatternDetection.Controllers
             _fallbackController = new FallbackAircraftTrafficController();
 
             const double DetectionCheckDistance = 0.5;
-            _simpleDetectionEngine = new DetectionEngine(DetectionCheckDistance);
+            _simpleDetectionEngine = new DetectionEngine(DetectionCheckDistance, navDbManager);
         }
 
 
@@ -48,7 +48,7 @@ namespace FlightPatternDetection.Controllers
 
                 if (result.Result is OkObjectResult okResult && okResult.Value is List<TrafficPosition> positions)
                 {
-                    return Ok(await AnalyzeFlightInternal(positions));
+                    return Ok(AnalyzeFlightInternal(positions));
                 }
                 else
                 {
@@ -62,7 +62,7 @@ namespace FlightPatternDetection.Controllers
                     var positions = (await _trafficClient.HistoryAsync(request.FlightId, -1)).ToList();
                     if (positions.Any())
                     {
-                        return Ok(await AnalyzeFlightInternal(positions));
+                        return Ok(AnalyzeFlightInternal(positions));
                     }
                     else
                     {
@@ -76,7 +76,7 @@ namespace FlightPatternDetection.Controllers
             }
         }
 
-        private async Task<HoldingResult> AnalyzeFlightInternal(List<TrafficPosition> flight)
+        private HoldingResult AnalyzeFlightInternal(List<TrafficPosition> flight)
         {
             if (flight.Count == 0)
             {
@@ -87,7 +87,7 @@ namespace FlightPatternDetection.Controllers
                 };
             }
 
-            var isHolding = await _simpleDetectionEngine.AnalyseFlight(flight);
+            var isHolding = _simpleDetectionEngine.AnalyseFlight(flight);
 
             return isHolding;
         }
