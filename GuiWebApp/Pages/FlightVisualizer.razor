@@ -285,11 +285,6 @@
         await map.RedrawFlight();
     }
 
-    private async Task ReanimateFlightPath()
-    {
-        await map.ReanimatePath();
-    }
-
     private async Task FlightListItemChanged(ChangeEventArgs changeEventArgs)
     {
         if(!long.TryParse(changeEventArgs.Value as string, out long nextFlightId))
