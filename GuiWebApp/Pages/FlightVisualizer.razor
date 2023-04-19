@@ -62,10 +62,11 @@
             <div class="d-grid">
                 @if (FallbackFlights is not null)
                 {
+                    int currFlightNumber = 1;
                     <select name="fallbackFlightsList" id="fallbackFlightsList" @onchange="FlightListItemChanged" class="form-select">
                         @foreach (var flight in FallbackFlights)
                         {
-                            <option value="@flight">@flight</option>
+                            <option value="@flight">@($"{currFlightNumber++}:{flight}")</option>
                         }
                     </select>
                 }
@@ -278,6 +279,11 @@
         finally
         {
             IsLoading = false;
+        }
+
+        if (UseFallbackApi && FallbackFlights?.Any(x => x == FlightId.ToString()) == true)
+        {
+            await jsRuntime.InvokeVoidAsync("selectFlightList", "fallbackFlightsList", FlightId);
         }
 
         if(LastException is null)

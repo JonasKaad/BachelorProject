@@ -17,3 +17,10 @@ function simulateClick(id) {
         el.click();
     }
 }
+
+function selectFlightList(e, v){
+    let elem = document.getElementById(e);
+    if(elem !== null && elem !== undefined){
+        elem.value = v;
+    }
+}
