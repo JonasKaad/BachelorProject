@@ -66,23 +66,6 @@ public class DetectionEngine
         var manualHeadCount = 0;
         var foundHoldings = new List<List<TrafficPosition>>();
         var cleanedDataCopy = new List<TrafficPosition>(cleanedData);
-        //foreach (var point in cleanedData)
-        //{
-        //    foreach (var second in cleanedData)
-        //    {
-        //        if (second.Heading == point.Heading)
-        //            continue;
-        //        if (IsInvertedHeading(point, second) && IsSameAltitude(point, second) && IsRecentEnough(point, second))
-        //        {
-        //            manualHeadCount++;
-        //            points.Add(points.Contains(point) ? second : point);
-        //            firstInversionPoint ??= point;
-        //            lastInversionPoint = point;
-        //            break;
-        //        }
-        //    }
-        //}
-
         const int pointsToTake = 10;
         List<TrafficPosition>? currentHolding = null;
         while (cleanedDataCopy.Count > 0)
@@ -145,15 +128,15 @@ public class DetectionEngine
 
         //Holdings were found. Find the laps and stuff.
 
-        //Debug print
+#if DEBUG
         Console.WriteLine("Copy paste to JavaScript console");
-        foreach (var d in foundHoldings)
+        foreach (var holding in foundHoldings)
         {
             Console.WriteLine("Found a holding pattern: ");
-            foreach (var p in d)
-                Console.WriteLine($"addPoint({p.Lat.ToString(CultureInfo.InvariantCulture)}, {p.Lon.ToString(CultureInfo.InvariantCulture)});");
+            foreach (var point in holding)
+                Console.WriteLine($"addPoint({point.Lat.ToString(CultureInfo.InvariantCulture)}, {point.Lon.ToString(CultureInfo.InvariantCulture)});");
         }
-
+#endif
 
         //TODO: Technically have support for more. But api DTO's does not. So for now, just treat as one. 
         var theHoldingPattern = foundHoldings.First();
@@ -168,15 +151,6 @@ public class DetectionEngine
         //var laps = CalculateLaps(cleanedData, firstInversionPoint, lastInversionPoint);
         int laps = (int)Math.Ceiling(theHoldingPattern.Count / 2d);
 
-        //Probably just a star that goes in a circle.
-        //if (laps <= 1)
-        //{
-        //    return new()
-        //    {
-        //        IsHolding = false
-        //    };
-        //}
-
         var holdingPattern = new HoldingResult()
         {
             IsHolding = foundHoldings.Any(),
@@ -190,33 +164,6 @@ public class DetectionEngine
     private bool IsRecentEnough(TrafficPosition point, TrafficPosition second)
     {
         return second.Clock - point.Clock < 350 && second.Clock - point.Clock > 90;
-    }
-
-    private int CalculateLaps(List<TrafficPosition> cleanedData, TrafficPosition firstInversionPoint, TrafficPosition lastInversionPoint)
-    {
-        // Victors old method
-        return (int)Math.Round((lastInversionPoint.Clock - firstInversionPoint.Clock) / 60.0);
-
-        //var firstIndex = cleanedData.IndexOf(firstInversionPoint);
-        //var lastIndex = cleanedData.IndexOf(firstInversionPoint);
-        //var pointsInHoldingPattern = cleanedData.GetRange(firstIndex, lastIndex - firstIndex);
-        //if (pointsInHoldingPattern.Count == 0)
-        //{
-        //    return 0;
-        //}
-
-        //int laps = 0;
-
-        //var pairwisePointsInHoldingPattern = pointsInHoldingPattern.Zip(pointsInHoldingPattern.Skip(1), (a, b) => Tuple.Create(a, b));
-        //var currentHeading = 1;
-        //foreach (var (a, b) in pairwisePointsInHoldingPattern)
-        //{
-
-        //}
-
-
-
-        //return laps;
     }
 
     private static double? CalculateDirection(List<TrafficPosition> cleanedData, TrafficPosition firstInversionPoint)
