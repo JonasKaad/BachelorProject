@@ -39,11 +39,25 @@ async function addWayPoints(lat, lng, name) {
     L.marker([lat, lng], { icon: myIcon }, { title: str }).addTo(map).bindPopup(str);
 }
 
+let currentCoords = [];
+let currentColor = '';
+
 async function createPath(coordinates, color) {
-    var polyline = L.polyline(coordinates, { color: color, className: 'animate' }).addTo(map);
+    var polyline = L.polyline(coordinates, { color: color, snakingSpeed: 1500 }).addTo(map)
+    polyline.snakeIn();
     L.featureGroup(getArrows(coordinates, 'black', 1, 5)).addTo(map);
-    map.fitBounds(polyline.getBounds());
+    currentCoords = coordinates;
+    currentColor = color;
+    map.fitBounds(L.latLngBounds(coordinates));
 }
-async function reanimatePath() {
-    document.querySelectorAll("path.leaflet-interactive.animate").forEach(x => { x.style.animationName = "dummy"; setTimeout(function () { x.style.animationName = "dash" }, 10) });
+async function resetView() {
+    let currentCenter = map.getCenter();
+    let currentZoom = map.getZoom();
+    createMap(currentCenter.lat, currentCenter.lng, currentZoom);
+}
+
+
+async function redrawFlight() {
+    resetView();
+    L.polyline(currentCoords, { color: currentColor, snakingSpeed: 1500 }).addTo(map).snakeIn();
 }

@@ -80,7 +80,7 @@
 
         
         <div class="d-grid gap-2 col-6 mx-auto mt-2">
-            <button disabled="@(TrafficData is null)" class="btn-primary btn" @onclick="ReanimateFlightPath">Replay flight</button>
+            <button disabled="@(TrafficData is null)" class="btn-primary btn" @onclick="RedrawFlightPath">Replay flight</button>
         </div>
 
         @if (LastException is { } e)
@@ -229,7 +229,7 @@
                 {
                     await map.AddWayPoints(point.Latitude, point.Longitude, point.Name);
                 }
-            
+
         }
         catch (Exception e)
         {
@@ -265,7 +265,7 @@
             if (TrafficData is not null){
                 foreach (var point in TrafficData)
                 {
-                    dataList.Add(new List<double>() { point.Lat, point.Lon });
+                    dataList.Add(new List<double>() { point.Lat, point.Lon, point.Alt });
                 }
             }
 
@@ -286,9 +286,9 @@
         }
     }
 
-    private async Task ReanimateFlightPath()
+    private async Task RedrawFlightPath()
     {
-        await map.ReanimatePath();
+        await map.RedrawFlight();
     }
 
     private async Task FlightListItemChanged(ChangeEventArgs changeEventArgs)
