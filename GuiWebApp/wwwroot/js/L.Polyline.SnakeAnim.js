@@ -7,7 +7,6 @@
 ///// FIXME: Implement snakeOut()
 ///// FIXME: Implement layerGroup.snakeIn() / Out()
 
-
 L.Polyline.include({
 
     // Hi-res timestamp indicating when the last calculations for vertices and
