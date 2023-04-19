@@ -27,7 +27,7 @@ public class DetectionEngine
         //FlightFilters
         FlightFilters = new List<IFlightFilter>()
         {
-            new GliderFilter(),
+            new AircraftTypeFilter(),
             new ShortFlightFilter(),
         };
     }
@@ -157,7 +157,7 @@ public class DetectionEngine
 
         //TODO: Technically have support for more. But api DTO's does not. So for now, just treat as one. 
         var theHoldingPattern = foundHoldings.First();
-        
+
         firstInversionPoint = theHoldingPattern.First();
         lastInversionPoint = theHoldingPattern.Last();
 
@@ -167,7 +167,7 @@ public class DetectionEngine
 
         //var laps = CalculateLaps(cleanedData, firstInversionPoint, lastInversionPoint);
         int laps = (int)Math.Ceiling(theHoldingPattern.Count / 2d);
-        
+
         //Probably just a star that goes in a circle.
         //if (laps <= 1)
         //{
