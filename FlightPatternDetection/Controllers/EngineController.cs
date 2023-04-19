@@ -53,6 +53,24 @@ namespace FlightPatternDetection.Controllers
 
         }
 
+        private async Task CreateAirport(string _Name, object _Country, string _ICAO, double _Lat, double _Lon)
+        {
+            if (!await _context.Airports.AnyAsync(x => x.ICAO == _ICAO))
+            {
+                var newAirport = new Airport()
+                {
+                    Name = _Name,
+                    Country = _Country.ToString(),
+                    ICAO = _ICAO,
+                    Latitude = _Lat,
+                    Longitude = _Lon,
+                };
+
+                _context.Airports.Add(newAirport);
+                await _context.SaveChangesAsync();
+            }
+        }
+
 
         [HttpPost("analyze")]
         public async Task<ActionResult<HoldingResult>> AnalyzeFlight(AnalyzeFlightRequest request)
@@ -106,28 +124,66 @@ namespace FlightPatternDetection.Controllers
                         _context.Flights.Add(newFlight);
                         await _context.SaveChangesAsync();
 
-
+                        EAirport orig = null;
+                        EAirport dest = null;
 
                         if (MiddleValueOfData.Orig == "")
                         {
-                            EAirport newAirport = AirportNavDB(MiddleValueOfData.Lat, MiddleValueOfData.Lon);
-
+                            EAirport originAirport = AirportNavDB(positions.First().Lat, positions.First().Lon);
+                            if (originAirport.ICAO != null)
+                            {
+                                if (!await _context.Airports.AnyAsync(x => x.ICAO == originAirport.ICAO))
+                                {
+                                    await CreateAirport(originAirport.Name, originAirport.Country.Name, originAirport.ICAO, originAirport.Latitude, originAirport.Longitude);
+                                }
+                                orig = originAirport;
+                            }
                         }
-                        if (!await _context.Airports.AnyAsync(x => x.ICAO == MiddleValueOfData.Airport))
+                        if (MiddleValueOfData.Dest == "")
                         {
-                            //var newAirport = new Airport()
-                            //{
-                            //    Name = _navDbManager.IdentifierToAirport,
-                            //    Country = _Country,
-                            //    ICAO = _ICAO,
-                            //    Latitude = _Latitude,
-                            //    Longitude = _Longitude,
-                            //};
-
-                            //_context.Airports.Add(newAirport);
-                            //await _context.SaveChangesAsync();
+                            EAirport destinationAirport = AirportNavDB(positions.Last().Lat, positions.Last().Lon);
+                            if (destinationAirport.ICAO != null)
+                            {
+                                if (!await _context.Airports.AnyAsync(x => x.ICAO == destinationAirport.ICAO))
+                                {
+                                    await CreateAirport(destinationAirport.Name, destinationAirport.Country.Name, destinationAirport.ICAO, destinationAirport.Latitude, destinationAirport.Longitude);
+                                }
+                                dest = destinationAirport;
+                            }
                         }
 
+                        EAirport origAirport = _navDbManager.Airports.First(x => x.ICAO == MiddleValueOfData.Orig);
+                        orig = origAirport;
+                        if (!await _context.Airports.AnyAsync(x => x.ICAO == origAirport.ICAO))
+                        {
+                            await CreateAirport(origAirport.Name, origAirport.Country.Name, origAirport.ICAO, origAirport.Latitude, origAirport.Longitude);
+                        }
+
+                        EAirport destAirport = _navDbManager.Airports.First(x => x.ICAO == MiddleValueOfData.Dest);
+                        dest = destAirport;
+                        if (!await _context.Airports.AnyAsync(x => x.ICAO == destAirport.ICAO))
+                        {
+                            await CreateAirport(destAirport.Name, destAirport.Country.Name, destAirport.ICAO, destAirport.Latitude, destAirport.Longitude);
+                        }
+
+                        Airport ogAirport = await _context.Airports.FirstAsync(x => x.ICAO == orig.ICAO);
+                        Airport dtAirport = await _context.Airports.FirstAsync(x => x.ICAO == dest.ICAO);
+
+                        if (orig != null && dest != null)
+                        {
+
+                            var newRoute = new RouteInformation()
+                            {
+
+                                FlightId = (int)request.FlightId,
+                                Origin = ogAirport,
+                                Destination = dtAirport,
+                                Takeoff_Time = DateTimeOffset.FromUnixTimeMilliseconds(positions.First().Clock).DateTime,
+                                ATCRoute = "DCT",
+                            };
+                            _context.RouteInformation.Add(newRoute);
+                            await _context.SaveChangesAsync();
+                        }
 
                         return Ok(AnalyzeFlightInternal(positions));
                     }
