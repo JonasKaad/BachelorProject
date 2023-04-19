@@ -25,9 +25,6 @@ async function createMap(lat, lng, zoomValue) {
 async function addPoint(lat, lng) {
     L.marker([lat, lng]).addTo(map);
 }
-async function reanimatePath() {
-    document.querySelectorAll("path.leaflet-interactive.animate").forEach(x => { x.style.animationName = "dummy"; setTimeout(function () { x.style.animationName = "dash" }, 10) });
-}
 
 async function addWayPoints(lat, lng, name) {
     var myIcon = L.icon({
@@ -63,12 +60,4 @@ async function resetView() {
 async function redrawFlight() {
     resetView();
     L.polyline(currentCoords, { color: currentColor, snakingSpeed: 1500 }).addTo(map).snakeIn();
-}
-
-async function redrawHoldingPattern(coordinates, color) {
-    L.polyline(coordinates, { color: color, snakingSpeed: 200 }).addTo(map).snakeIn();
-
-    let corner1 = coordinates[0];
-    let corner2 = coordinates[coordinates.length - 1];
-    console.log("C1: " + corner1 + " C2: " + corner2);
 }

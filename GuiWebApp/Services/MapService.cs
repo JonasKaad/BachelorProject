@@ -39,10 +39,5 @@ namespace GuiWebApp.Client.Services
         {
             await _jsRuntime.InvokeVoidAsync("resetView");
         }
-
-        public async Task ReanimatePath()
-        {
-            await _jsRuntime.InvokeVoidAsync("reanimatePath");
-        }
     }
 }
