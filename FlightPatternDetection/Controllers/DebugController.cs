@@ -64,11 +64,16 @@ namespace FlightPatternDetection.Controllers
         }
 
         [HttpGet("GetFlightExample")]
-        public async Task<Flight> GetFlights()
+        public async Task<Flight> GetFlights(string flightid)
         {
-            var testFlight = await _context.Flights.FirstAsync(x => x.FlightId == 1939169898);
+            if (await _context.Flights.AnyAsync(x => x.FlightId == int.Parse(flightid)))
+            {
 
-            return testFlight;
+                var testFlight = await _context.Flights.FirstAsync(x => x.FlightId == int.Parse(flightid));
+                return testFlight;
+            }
+            else return null;
+
         }
 
         [HttpPost("CreateFlightExample")]
