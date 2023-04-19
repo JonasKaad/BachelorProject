@@ -2,6 +2,7 @@
 using System.Net.Http.Json;
 using FlightPatternDetection.DTO;
 using FlightPatternDetection.DTO.NavDBEntities;
+using FlightPatternDetection.Services;
 using TrafficApiClient;
 
 namespace PatternDetectionEngine;
@@ -12,19 +13,18 @@ public class DetectionEngine
     private const int InvertedHeadingCount = 2;
     private const int InvertedHeadingBuffer = 5;
     private const int AltitudeBuffer = 200;
-    private readonly HttpClient _httpClient;
+    private INavDbManager? _navDbManager;
 
-    public DetectionEngine(double checkDistance)
+    public DetectionEngine(double checkDistance, INavDbManager navDbManager)
     {
         CheckDistance = checkDistance;
-        _httpClient = new HttpClient();
-        _httpClient.BaseAddress = new Uri("http://localhost/", UriKind.Absolute);
+        _navDbManager = navDbManager;
     }
     
-    public async Task<HoldingResult> AnalyseFlight(List<TrafficPosition> flightData)
+    public HoldingResult AnalyseFlight(List<TrafficPosition> flightData)
     {
         var startTime = Stopwatch.StartNew();
-        var cleanedData = await RemoveUnnecessaryPoints(flightData);
+        var cleanedData = RemoveUnnecessaryPoints(flightData);
         var patternResult = CheckForPattern(cleanedData);
         
         patternResult.DetectionTime = startTime.Elapsed;
@@ -64,8 +64,6 @@ public class DetectionEngine
             return new();
 
         var laps = CalculateLaps(cleanedData, firstInversionPoint, lastInversionPoint);
-        Console.WriteLine(cleanedData.First().Lat);
-        Console.WriteLine(cleanedData.First().Lon);
         var holdingPattern = new HoldingResult()
         {
             IsHolding = manualHeadCount > InvertedHeadingCount,
@@ -110,7 +108,7 @@ public class DetectionEngine
         return point.Alt > second.Alt - AltitudeBuffer && point.Alt < second.Alt + AltitudeBuffer;
     }
 
-    public async Task<List<TrafficPosition>> RemoveUnnecessaryPoints(List<TrafficPosition> flightData)
+    public List<TrafficPosition> RemoveUnnecessaryPoints(List<TrafficPosition> flightData)
     {
         // Could use navdb to get lat and long for destination airport instead of using last point.
 
@@ -118,19 +116,15 @@ public class DetectionEngine
         var lastLon = flightData.Last().Lon;
 
         EAirport? dest = null;
-        
-        try
+
+        if (_navDbManager is not null)
         {
-            var airportResponse = await _httpClient.GetAsync($"NavDb/Airport?ICAO={flightData.Last().Dest}");
-            
-            if (airportResponse.IsSuccessStatusCode)
-            {
-                dest = await airportResponse.Content.ReadFromJsonAsync<EAirport>();
-            }
-        }
-        catch (HttpRequestException e)
-        {
-            Console.WriteLine(e.InnerException);
+            dest = _navDbManager.Airports.FirstOrDefault(x=>  x.ICAO == flightData.Last().Dest);
+            dest ??= _navDbManager.Airports.FirstOrDefault(x => 
+                x.Longitude >= lastLon + 0.125 && x.Longitude <= lastLon - 0.125 
+                                               && x.Latitude >= lastLat + 0.125 && x.Latitude <= lastLat - 0.125
+            );
+
         }
 
         var zeroedAltitude = 0.0;
@@ -141,7 +135,7 @@ public class DetectionEngine
 
         return flightData.Where(f =>
             WithinDistance(f.Lat, lastLat) && WithinDistance(f.Lon, lastLon))
-            .Where(p => p.Alt > zeroedAltitude + 7000).ToList();
+            .Where(p => p.Alt > zeroedAltitude + 5000).ToList();
     }
 
     private bool WithinDistance(double pointToCheck, double pointBoundary)
