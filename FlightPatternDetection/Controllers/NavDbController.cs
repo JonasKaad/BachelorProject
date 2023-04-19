@@ -38,6 +38,20 @@ namespace FlightPatternDetection.Controllers
             return airport;
         }
 
+        [HttpGet("Airport/coords")]
+        public EAirport GetAirport(double lat, double lon)
+        {
+
+            var airport = _navDbManager.Airports.FirstOrDefault(
+                x => x.Latitude <= lat + 0.125 && x.Latitude >= lat - 0.125 &&
+                     x.Longitude <= lon + 0.125 && x.Longitude >= lon - 0.125);
+
+            if (airport is null)
+            {
+                return new EAirport(0, 0, "_", 0, 0, $"Airport at {lat}, {lon} not found");
+            }
+            return airport;
+        }
 
     }
 }

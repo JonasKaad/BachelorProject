@@ -30,7 +30,7 @@ namespace FlightPatternDetection.Controllers
             _fallbackController = new FallbackAircraftTrafficController();
 
             const double DetectionCheckDistance = 0.5;
-            _simpleDetectionEngine = new DetectionEngine(DetectionCheckDistance);
+            _simpleDetectionEngine = new DetectionEngine(DetectionCheckDistance, navDbManager);
         }
 
 
@@ -78,7 +78,6 @@ namespace FlightPatternDetection.Controllers
 
         private HoldingResult AnalyzeFlightInternal(List<TrafficPosition> flight)
         {
-            var stopWatch = Stopwatch.StartNew();
             if (flight.Count == 0)
             {
                 return new()
@@ -90,13 +89,7 @@ namespace FlightPatternDetection.Controllers
 
             var isHolding = _simpleDetectionEngine.AnalyseFlight(flight);
 
-            stopWatch.Stop();
-
-            return new()
-            {
-                IsHolding = isHolding,
-                DetectionTime = stopWatch.Elapsed,
-            };
+            return isHolding;
         }
     }
 }

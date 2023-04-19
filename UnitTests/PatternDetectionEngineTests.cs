@@ -11,10 +11,10 @@ public class PatternDetectionEngineTests
     {
         // Arrange
         var flight = UnitTestHelper.RetriveFlightData("flight_with_holding_pattern.json");
-        var engine = new DetectionEngine(0.5);
+        var engine = new DetectionEngine(0.5, null!);
         
         // Act
-        var result = engine.RemoveUnnecessaryPoints(flight, "test");
+        var result = engine.RemoveUnnecessaryPoints(flight);
 
         // Assert
         result.Count.Should().NotBe(flight.Count);
@@ -24,12 +24,12 @@ public class PatternDetectionEngineTests
     public void Engine_ShouldNotHavePattern()
     {
         var flight = UnitTestHelper.RetriveFlightData("flight_without_holding_pattern.json");
-        var engine = new DetectionEngine(0.5);
+        var engine = new DetectionEngine(0.5, null!);
         
         // Act
         var result = engine.AnalyseFlight(flight);
 
-        result.Should().BeFalse();
+        result.IsHolding.Should().BeFalse();
     }
     
     [TestMethod]
@@ -37,12 +37,12 @@ public class PatternDetectionEngineTests
     {
         // Arrange
         var flight = UnitTestHelper.RetriveFlightData("flight_with_holding_pattern.json");
-        var engine = new DetectionEngine(0.5);
+        var engine = new DetectionEngine(0.5, null!);
         
         // Act
         var result = engine.AnalyseFlight(flight);
 
         // Result
-        result.Should().BeTrue();
+        result.IsHolding.Should().BeTrue();
     }
 }
