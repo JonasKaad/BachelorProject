@@ -113,16 +113,19 @@ namespace FlightPatternDetection.Controllers
                 if (result.Result is OkObjectResult okResult && okResult.Value is List<TrafficPosition> positions)
                 {
 
-                    var newFlight = new Flight()
+                    if (!await _context.Flights.AnyAsync(x => x.FlightId == request.FlightId))
                     {
-                        FlightId = request.FlightId,
-                        Registration = GetString(positions, x => x.Reg),
-                        ICAO = GetString(positions, x => x.AircraftType),
-                        ModeS = GetString(positions, x => x.Hexid),
-                        CallSign = GetString(positions, x => x.Ident),
-                    };
-                    _context.Flights.Add(newFlight);
-                    await _context.SaveChangesAsync();
+                        var newFlight = new Flight()
+                        {
+                            FlightId = request.FlightId,
+                            Registration = GetString(positions, x => x.Reg),
+                            ICAO = GetString(positions, x => x.AircraftType),
+                            ModeS = GetString(positions, x => x.Hexid),
+                            CallSign = GetString(positions, x => x.Ident),
+                        };
+                        _context.Flights.Add(newFlight);
+                        await _context.SaveChangesAsync();
+                    }
 
                     Airport orig = null;
                     Airport dest = null;
@@ -200,9 +203,9 @@ namespace FlightPatternDetection.Controllers
                             };
 
                             _context.RouteInformation.Add(newRoute);
-                            await _context.SaveChangesAsync();
                         }
                     }
+                    await _context.SaveChangesAsync();
 
                     return Ok(AnalyzeFlightInternal(positions));
                 }
@@ -275,7 +278,12 @@ namespace FlightPatternDetection.Controllers
 
         private string GetString(List<TrafficPosition> flight, Func<TrafficPosition?, string> selector)
         {
-            return selector(flight.FirstOrDefault(x => !string.IsNullOrWhiteSpace(selector(x))));
+            var tempFlight = flight.FirstOrDefault(x => !string.IsNullOrWhiteSpace(selector(x)));
+            if (tempFlight != null)
+            {
+                return selector(tempFlight);
+            }
+            return "---";
         }
     }
 }
