@@ -40,7 +40,6 @@ namespace FlightPatternDetection
                     .UseMySql(connectionString, serverVersion)
                     // The following three options help with debugging, but should
                     // be changed or removed for production.
-                    .LogTo(Console.WriteLine, LogLevel.Information)
                     .EnableSensitiveDataLogging()
                     .EnableDetailedErrors()
             );

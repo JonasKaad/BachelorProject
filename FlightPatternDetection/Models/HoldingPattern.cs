@@ -7,7 +7,7 @@ namespace FlightPatternDetection.Models;
 public class HoldingPattern
 {
     [Key, ForeignKey("Flight"), Column(name: "Flight_Id")]
-    public int FlightId { get; set; }
+    public long FlightId { get; set; }
 
     public string? Fixpoint { get; set; }
 

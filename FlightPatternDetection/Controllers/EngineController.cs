@@ -7,10 +7,6 @@ using FlightPatternDetection.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PatternDetectionEngine;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
-using System.Xml.Linq;
 using TrafficApiClient;
 
 namespace FlightPatternDetection.Controllers
@@ -53,11 +49,12 @@ namespace FlightPatternDetection.Controllers
 
         }
 
-        private async Task CreateAirport(string _Name, object _Country, string _ICAO, double _Lat, double _Lon)
+        private async Task<Airport> CreateAirport(string _Name, object _Country, string _ICAO, double _Lat, double _Lon)
         {
+            var newAirport = new Airport();
             if (!await _context.Airports.AnyAsync(x => x.ICAO == _ICAO))
             {
-                var newAirport = new Airport()
+                newAirport = new Airport()
                 {
                     Name = _Name,
                     Country = _Country.ToString(),
@@ -69,6 +66,11 @@ namespace FlightPatternDetection.Controllers
                 _context.Airports.Add(newAirport);
                 await _context.SaveChangesAsync();
             }
+            else
+            {
+                newAirport = await _context.Airports.FirstAsync(x => x.ICAO == _ICAO);
+            }
+            return newAirport;
         }
 
 
@@ -80,138 +82,154 @@ namespace FlightPatternDetection.Controllers
                 return BadRequest("Request must not be null, and the FlightId must be positive");
             }
 
-            if (await _context.Flights.AnyAsync(x => x.FlightId == request.FlightId))
-            {
-                if (await _context.HoldingPatterns.AnyAsync(x => x.FlightId == request.FlightId))
-                {
-                    var HoldingPattern = await _context.HoldingPatterns.FirstAsync(x => x.FlightId == request.FlightId);
+            //if (await _context.Flights.AnyAsync(x => x.FlightId == request.FlightId))
+            //{
+            //    if (await _context.HoldingPatterns.AnyAsync(x => x.FlightId == request.FlightId))
+            //    {
+            //        var HoldingPattern = await _context.HoldingPatterns.FirstAsync(x => x.FlightId == request.FlightId);
 
-                    var convertedHoldingPattern = new HoldingResult()
+            //        var convertedHoldingPattern = new HoldingResult()
+            //        {
+            //            IsHolding = true,
+            //            DetectionTime = TimeSpan.Zero,
+            //            Direction = (HoldingDirection)HoldingPattern.Direction,
+            //            Altitude = (int)HoldingPattern.Altitude,
+            //            Laps = HoldingPattern.Laps,
+            //        };
+            //        return convertedHoldingPattern;
+            //    }
+            //    else
+            //    {
+            //        return new HoldingResult() { IsHolding = false, DetectionTime = TimeSpan.Zero };
+            //    }
+            //}
+
+
+
+            if (request.UseFallback)
+            {
+                var result = _fallbackController.GetAircraftHistoryAsync(request.FlightId);
+
+                if (result.Result is OkObjectResult okResult && okResult.Value is List<TrafficPosition> positions)
+                {
+
+                    var newFlight = new Flight()
                     {
-                        IsHolding = true,
-                        DetectionTime = TimeSpan.Zero,
-                        Direction = (HoldingDirection)HoldingPattern.Direction,
-                        Altitude = (int)HoldingPattern.Altitude,
-                        Laps = HoldingPattern.Laps,
+                        FlightId = request.FlightId,
+                        Registration = GetString(positions, x => x.Reg),
+                        ICAO = GetString(positions, x => x.AircraftType),
+                        ModeS = GetString(positions, x => x.Hexid),
+                        CallSign = GetString(positions, x => x.Ident),
                     };
-                    return convertedHoldingPattern;
+                    _context.Flights.Add(newFlight);
+                    await _context.SaveChangesAsync();
+
+                    Airport orig = null;
+                    Airport dest = null;
+
+                    if (GetString(positions, x => x?.Orig ?? string.Empty) != string.Empty)
+                    {
+                        EAirport originAirport = AirportNavDB(positions.First().Lat, positions.First().Lon);
+                        if (originAirport.Identifier != "_")
+                        {
+                            var nameICAO = "";
+                            if (originAirport.ICAO == "")
+                            {
+                                nameICAO = originAirport.FullName;
+                            }
+                            else
+                            {
+                                nameICAO = originAirport.ICAO;
+                            }
+                            if (!await _context.Airports.AnyAsync(x => x.ICAO == nameICAO))
+                            {
+                                orig = await CreateAirport(originAirport.Name, originAirport.Country.Name, nameICAO, originAirport.Latitude, originAirport.Longitude);
+                            }
+                        }
+                    }
+                    else
+                    {
+                        EAirport origAirport = _navDbManager.Airports.First(x => x.ICAO == GetString(positions, x => x?.Orig ?? string.Empty));
+                        if (!await _context.Airports.AnyAsync(x => x.ICAO == origAirport.ICAO))
+                        {
+                            orig = await CreateAirport(origAirport.Name, origAirport.Country.Name, origAirport.ICAO, origAirport.Latitude, origAirport.Longitude);
+                        }
+                    }
+
+                    if (GetString(positions, x => x?.Dest ?? string.Empty) != string.Empty)
+                    {
+                        EAirport destinationAirport = AirportNavDB(positions.Last().Lat, positions.Last().Lon);
+                        if (destinationAirport.Identifier != "_")
+                        {
+                            var nameICAO = "";
+                            if (destinationAirport.ICAO == "")
+                            {
+                                nameICAO = destinationAirport.FullName;
+                            }
+                            else
+                            {
+                                nameICAO = destinationAirport.ICAO;
+                            }
+                            if (!await _context.Airports.AnyAsync(x => x.ICAO == nameICAO))
+                            {
+                                dest = await CreateAirport(destinationAirport.Name, destinationAirport.Country.Name, nameICAO, destinationAirport.Latitude, destinationAirport.Longitude);
+                            }
+
+                        }
+                    }
+                    else
+                    {
+                        EAirport destAirport = _navDbManager.Airports.First(x => x.ICAO == GetString(positions, x => x?.Dest ?? string.Empty));
+                        if (!await _context.Airports.AnyAsync(x => x.ICAO == destAirport.ICAO))
+                        {
+                            dest = await CreateAirport(destAirport.Name, destAirport.Country.Name, destAirport.ICAO, destAirport.Latitude, destAirport.Longitude);
+                        }
+                    }
+
+                    if (orig != null && dest != null)
+                    {
+                        if (await _context.RouteInformation.AnyAsync(x => x.FlightId == request.FlightId))
+                        {
+                            var newRoute = new RouteInformation()
+                            {
+                                FlightId = request.FlightId,
+                                Origin = orig,
+                                Destination = dest,
+                                Takeoff_Time = DateTimeOffset.FromUnixTimeMilliseconds(positions.First().Clock).DateTime,
+                                ATCRoute = "DCT",
+                            };
+
+                            _context.RouteInformation.Add(newRoute);
+                            await _context.SaveChangesAsync();
+                        }
+                    }
+
+                    return Ok(AnalyzeFlightInternal(positions));
                 }
                 else
                 {
-                    return new HoldingResult() { IsHolding = false, DetectionTime = TimeSpan.Zero };
+                    return NotFound($"{request.FlightId} not found in the fallback-db");
                 }
             }
             else
             {
-
-                if (request.UseFallback)
+                try
                 {
-                    var result = _fallbackController.GetAircraftHistoryAsync(request.FlightId);
-
-                    if (result.Result is OkObjectResult okResult && okResult.Value is List<TrafficPosition> positions)
+                    var positions = (await _trafficClient.HistoryAsync(request.FlightId, -1)).ToList();
+                    if (positions.Any())
                     {
-                        //var MiddleValue = (int)Math.Floor(positions.Count / 2.0);// Takes middle element
-                        var MiddleValueOfData = positions.Skip((int)Math.Floor(positions.Count / 2.0)).First();// Takes middle element
-
-                        var newFlight = new Flight()
-                        {
-                            FlightId = (int)request.FlightId,
-                            Registration = MiddleValueOfData.Reg,
-                            ICAO = MiddleValueOfData.AircraftType,
-                            ModeS = MiddleValueOfData.Hexid,
-                            CallSign = MiddleValueOfData.Ident,
-                        };
-                        _context.Flights.Add(newFlight);
-                        await _context.SaveChangesAsync();
-
-                        EAirport orig = null;
-                        EAirport dest = null;
-
-                        if (MiddleValueOfData.Orig == "")
-                        {
-                            EAirport originAirport = AirportNavDB(positions.First().Lat, positions.First().Lon);
-                            if (originAirport.ICAO != null)
-                            {
-                                if (!await _context.Airports.AnyAsync(x => x.ICAO == originAirport.ICAO))
-                                {
-                                    await CreateAirport(originAirport.Name, originAirport.Country.Name, originAirport.ICAO, originAirport.Latitude, originAirport.Longitude);
-                                }
-                                orig = originAirport;
-                            }
-                        }
-                        if (MiddleValueOfData.Dest == "")
-                        {
-                            EAirport destinationAirport = AirportNavDB(positions.Last().Lat, positions.Last().Lon);
-                            if (destinationAirport.ICAO != null)
-                            {
-                                if (!await _context.Airports.AnyAsync(x => x.ICAO == destinationAirport.ICAO))
-                                {
-                                    await CreateAirport(destinationAirport.Name, destinationAirport.Country.Name, destinationAirport.ICAO, destinationAirport.Latitude, destinationAirport.Longitude);
-                                }
-                                dest = destinationAirport;
-                            }
-                        }
-
-                        EAirport origAirport = _navDbManager.Airports.First(x => x.ICAO == MiddleValueOfData.Orig);
-                        orig = origAirport;
-                        if (!await _context.Airports.AnyAsync(x => x.ICAO == origAirport.ICAO))
-                        {
-                            await CreateAirport(origAirport.Name, origAirport.Country.Name, origAirport.ICAO, origAirport.Latitude, origAirport.Longitude);
-                        }
-
-                        EAirport destAirport = _navDbManager.Airports.First(x => x.ICAO == MiddleValueOfData.Dest);
-                        dest = destAirport;
-                        if (!await _context.Airports.AnyAsync(x => x.ICAO == destAirport.ICAO))
-                        {
-                            await CreateAirport(destAirport.Name, destAirport.Country.Name, destAirport.ICAO, destAirport.Latitude, destAirport.Longitude);
-                        }
-
-                        Airport ogAirport = await _context.Airports.FirstAsync(x => x.ICAO == orig.ICAO);
-                        Airport dtAirport = await _context.Airports.FirstAsync(x => x.ICAO == dest.ICAO);
-
-                        if (orig != null && dest != null)
-                        {
-
-                            var newRoute = new RouteInformation()
-                            {
-
-                                FlightId = (int)request.FlightId,
-                                Origin = ogAirport,
-                                Destination = dtAirport,
-                                Takeoff_Time = DateTimeOffset.FromUnixTimeMilliseconds(positions.First().Clock).DateTime,
-                                ATCRoute = "DCT",
-                            };
-                            _context.RouteInformation.Add(newRoute);
-                            await _context.SaveChangesAsync();
-                        }
-
+                        //
                         return Ok(AnalyzeFlightInternal(positions));
                     }
                     else
                     {
-                        return NotFound($"{request.FlightId} not found in the fallback-db");
+                        return NotFound($"{request.FlightId} was not found on ForeFlight servers");
                     }
                 }
-                else
+                catch (ApiException ex)
                 {
-                    try
-                    {
-                        var positions = (await _trafficClient.HistoryAsync(request.FlightId, -1)).ToList();
-                        if (positions.Any())
-                        {
-                            //
-                            return Ok(AnalyzeFlightInternal(positions));
-                        }
-                        else
-                        {
-                            return NotFound($"{request.FlightId} was not found on ForeFlight servers");
-                        }
-                    }
-                    catch (ApiException ex)
-                    {
-                        _logger.LogError($"ApiException from FF: {ex.Message}\n{ex.StackTrace}");
-                        return Problem($"Could not reach FF traffic service. Got status {ex.StatusCode}.");
-                    }
+                    _logger.LogError($"ApiException from FF: {ex.Message}\n{ex.StackTrace}");
+                    return Problem($"Could not reach FF traffic service. Got status {ex.StatusCode}.");
                 }
             }
         }
@@ -231,9 +249,11 @@ namespace FlightPatternDetection.Controllers
 
             if (isHolding.IsHolding != false)
             {
+
                 var newHoldingPattern = new HoldingPattern()
                 {
-                    FlightId = int.Parse(flight.Skip((int)Math.Floor(flight.Count / 2.0)).First().Id), // Takes from the middle element
+                    //FlightId = int.Parse(flight.Skip((int)Math.Floor(flight.Count / 2.0)).First().Id), // Takes from the middle element
+                    FlightId = GetLong(flight, x => x.Id), // Takes from the middle element
                     Fixpoint = "xyz",
                     Laps = isHolding.Laps,
                     Direction = (Direction)isHolding.Direction,
@@ -246,6 +266,17 @@ namespace FlightPatternDetection.Controllers
             }
             return isHolding;
 
+        }
+
+        private long GetLong(List<TrafficPosition> flight, Func<TrafficPosition?, string> selector)
+        {
+            long.TryParse(GetString(flight, selector) ?? "-1", out long flightId);
+            return flightId;
+        }
+
+        private string GetString(List<TrafficPosition> flight, Func<TrafficPosition?, string> selector)
+        {
+            return selector(flight.FirstOrDefault(x => !string.IsNullOrWhiteSpace(selector(x))));
         }
     }
 }

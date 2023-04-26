@@ -10,7 +10,7 @@ public class Flight
 {
     [Key]
     [Column(name: "Flight_Id")]
-    public int FlightId { get; set; }
+    public long FlightId { get; set; }
 
     public string? Registration { get; set; }
 

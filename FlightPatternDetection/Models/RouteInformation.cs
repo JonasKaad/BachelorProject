@@ -8,7 +8,7 @@ namespace FlightPatternDetection.Models;
 public class RouteInformation
 {
     [Key, ForeignKey("Flight"), Column(name: "Flight_Id")]
-    public int FlightId { get; set; }
+    public long FlightId { get; set; }
 
     [ForeignKey("Destination_ICAO")]
     public Airport? Destination { get; set; }

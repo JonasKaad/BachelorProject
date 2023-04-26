@@ -25,7 +25,7 @@ create table Holding_Pattern
 
 create table Airport
 (
-    ICAO      CHAR(4)      not null
+    ICAO      VARCHAR(100)      not null
         primary key
         unique,
     Name      VARCHAR(100) null,
@@ -39,8 +39,8 @@ create table Route_Information
 (
     Flight_ID        BIGINT       null
         primary key,
-    Destination_ICAO CHAR(4)   null,
-    Origin_ICAO      CHAR(4)   null,
+    Destination_ICAO VARCHAR(100)   null,
+    Origin_ICAO      VARCHAR(100)   null,
     Takeoff_Time     TIMESTAMP null,
     ATC_Route        LONGTEXT  null,
     constraint Route_Information_Airport_ICAO_fk
