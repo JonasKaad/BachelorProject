@@ -113,7 +113,8 @@
                     {
                         <p class="m-0">Laps: @holdingResult.Laps</p>
                         <p class="m-0">Altitude: @holdingResult.Altitude Feet</p>   
-                        <p class="m-0">Direction: @(holdingResult.Direction == HoldingDirection.Left ? "Left" : "Right")</p>   
+                        <p class="m-0">Direction: @(holdingResult.Direction == HoldingDirection.Left ? "Left" : "Right")</p>
+                        <p class="m-0">Fix point: @holdingResult.FixPoint.Name</p>
                     }
                     <p>Detection took: @holdingResult.DetectionTime.TotalMilliseconds.ToString("0.00", CultureInfo.InvariantCulture) ms.</p>
                 </div>
@@ -217,7 +218,7 @@
             var data = await res.Content.ReadFromJsonAsync<List<TrafficPosition>>();
             var lastPoint = data.Last();
 
-            var result = await httpClient.GetAsync($"NavDb/Waypoints?lat={lastPoint.Lat}&lng={lastPoint.Lon}");
+            var result = await httpClient.GetAsync($"NavDb/Waypoints?lat={lastPoint.Lat}&lng={lastPoint.Lon}&radius=1");
 
             if (!result.IsSuccessStatusCode)
             {
