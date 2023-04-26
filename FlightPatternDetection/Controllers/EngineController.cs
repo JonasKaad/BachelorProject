@@ -49,7 +49,7 @@ namespace FlightPatternDetection.Controllers
 
         }
 
-        private async Task<Airport> CreateAirport(string _Name, object _Country, string _ICAO, double _Lat, double _Lon)
+        private async Task<Airport> CreateOrFetchAirport(string _Name, object _Country, string _ICAO, double _Lat, double _Lon)
         {
             var newAirport = new Airport();
             if (!await _context.Airports.AnyAsync(x => x.ICAO == _ICAO))
@@ -143,7 +143,7 @@ namespace FlightPatternDetection.Controllers
                             }
                             if (!await _context.Airports.AnyAsync(x => x.ICAO == nameICAO))
                             {
-                                orig = await CreateAirport(originAirport.Name, originAirport.Country.Name, nameICAO, originAirport.Latitude, originAirport.Longitude);
+                                orig = await CreateOrFetchAirport(originAirport.Name, originAirport.Country.Name, nameICAO, originAirport.Latitude, originAirport.Longitude);
                             }
                         }
                     }
@@ -152,7 +152,7 @@ namespace FlightPatternDetection.Controllers
                         EAirport origAirport = _navDbManager.Airports.First(x => x.ICAO == GetString(positions, x => x?.Orig ?? string.Empty));
                         if (!await _context.Airports.AnyAsync(x => x.ICAO == origAirport.ICAO))
                         {
-                            orig = await CreateAirport(origAirport.Name, origAirport.Country.Name, origAirport.ICAO, origAirport.Latitude, origAirport.Longitude);
+                            orig = await CreateOrFetchAirport(origAirport.Name, origAirport.Country.Name, origAirport.ICAO, origAirport.Latitude, origAirport.Longitude);
                         }
                     }
 
@@ -172,7 +172,7 @@ namespace FlightPatternDetection.Controllers
                             }
                             if (!await _context.Airports.AnyAsync(x => x.ICAO == nameICAO))
                             {
-                                dest = await CreateAirport(destinationAirport.Name, destinationAirport.Country.Name, nameICAO, destinationAirport.Latitude, destinationAirport.Longitude);
+                                dest = await CreateOrFetchAirport(destinationAirport.Name, destinationAirport.Country.Name, nameICAO, destinationAirport.Latitude, destinationAirport.Longitude);
                             }
 
                         }
@@ -182,7 +182,7 @@ namespace FlightPatternDetection.Controllers
                         EAirport destAirport = _navDbManager.Airports.First(x => x.ICAO == GetString(positions, x => x?.Dest ?? string.Empty));
                         if (!await _context.Airports.AnyAsync(x => x.ICAO == destAirport.ICAO))
                         {
-                            dest = await CreateAirport(destAirport.Name, destAirport.Country.Name, destAirport.ICAO, destAirport.Latitude, destAirport.Longitude);
+                            dest = await CreateOrFetchAirport(destAirport.Name, destAirport.Country.Name, destAirport.ICAO, destAirport.Latitude, destAirport.Longitude);
                         }
                     }
 
