@@ -1,6 +1,6 @@
 create table Flight
 (
-    Flight_Id    int         not null
+    Flight_Id    BIGINT         not null
         primary key
         unique,
     Registration VARCHAR(20) null,
@@ -12,7 +12,7 @@ create table Flight
 
 create table Holding_Pattern
 (
-    Flight_Id    int                    not null
+    Flight_Id    BIGINT                    not null
         primary key,
     Fixpoint     VARCHAR(15)            null,
     Laps         int                    null,
@@ -37,7 +37,7 @@ create table Airport
 
 create table Route_Information
 (
-    Flight_ID        int       null
+    Flight_ID        BIGINT       null
         primary key,
     Destination_ICAO CHAR(4)   null,
     Origin_ICAO      CHAR(4)   null,
