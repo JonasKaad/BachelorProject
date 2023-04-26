@@ -1,4 +1,6 @@
-﻿namespace FlightPatternDetection.DTO
+﻿using FlightPatternDetection.DTO.NavDBEntities;
+
+namespace FlightPatternDetection.DTO
 {
     public class HoldingResult
     {
@@ -7,5 +9,6 @@
         public HoldingDirection Direction { get; set; }
         public int Altitude { get; set; }
         public int Laps { get; set; }
+        public EWayPoint FixPoint { get; set; }
     }
 }
