@@ -186,16 +186,14 @@ public class DetectionEngine
             IsCloseEnough(waypoint, firstInversionPoint, pointBuffer)
         ).ToList();
         
+        var closePoints = waypointsAroundHolding.Where(p => 
+            holdingPoints.Any(h => IsCloseEnough(p, h, 0.025))
+        ).ToList();
+        if (closePoints.Any())
+            return closePoints.First();
+        
         foreach (var point in trafficPositions)
         {
-            var closePoints = waypointsAroundHolding.Where(p => 
-                holdingPoints.Any(h => IsCloseEnough(p, h, 0.025))
-            ).ToList();
-            if (closePoints.Any())
-                return closePoints.First();
-
-            if (!waypointsAroundHolding.Any())
-                continue;
             foreach (var fixPoint in waypointsAroundHolding)
             {
                 var pointLonDiff = Math.Abs(fixPoint.Longitude - point.Lon);
