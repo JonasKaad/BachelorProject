@@ -252,7 +252,6 @@ namespace FlightPatternDetection.Controllers
 
                 var newHoldingPattern = new HoldingPattern()
                 {
-                    //FlightId = int.Parse(flight.Skip((int)Math.Floor(flight.Count / 2.0)).First().Id), // Takes from the middle element
                     FlightId = GetLong(flight, x => x.Id), // Takes from the middle element
                     Fixpoint = "xyz",
                     Laps = isHolding.Laps,
