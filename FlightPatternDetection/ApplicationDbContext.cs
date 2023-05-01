@@ -15,6 +15,8 @@ public class ApplicationDbContext : DbContext
     public DbSet<RouteInformation> RouteInformation { get; set; }
     public DbSet<HoldingPattern> HoldingPatterns { get; set; }
 
+    public DbSet<AutomatedCollection> AutomatedCollection { get; set; }
+
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> context) : base(context)
     {
         ;

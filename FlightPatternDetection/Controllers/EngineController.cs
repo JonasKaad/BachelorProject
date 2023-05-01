@@ -14,6 +14,7 @@ namespace FlightPatternDetection.Controllers
     [Route("[controller]")]
     public class EngineController : ControllerBase
     {
+        public const double DetectionCheckDistance = 0.5; //Exposing so FlightAnalyzingTask can use it
         private readonly ILogger<EngineController> _logger;
         private readonly TrafficClient _trafficClient;
         private readonly NavDbManager _navDbManager;
@@ -29,7 +30,6 @@ namespace FlightPatternDetection.Controllers
 
             _fallbackController = new FallbackAircraftTrafficController();
 
-            const double DetectionCheckDistance = 0.5;
             _simpleDetectionEngine = new DetectionEngine(DetectionCheckDistance, navDbManager);
         }
 
@@ -68,7 +68,8 @@ namespace FlightPatternDetection.Controllers
                     {
                         return NotFound($"{request.FlightId} was not found on ForeFlight servers");
                     }
-                }catch(ApiException ex)
+                }
+                catch (ApiException ex)
                 {
                     _logger.LogError($"ApiException from FF: {ex.Message}\n{ex.StackTrace}");
                     return Problem($"Could not reach FF traffic service. Got status {ex.StatusCode}.");
