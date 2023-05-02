@@ -51,7 +51,7 @@ namespace FlightPatternDetection.Services
 
             Log?.LogInformation($"Fetched {flightsToAnalyze.Count} flights to analyze.");
 
-            const int BatchSize = 100;
+            const int BatchSize = 25;
             int currentBatch = 0;
             int failedAttempts = 0;
             int totalProcessed = 0;
