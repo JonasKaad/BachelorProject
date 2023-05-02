@@ -4,6 +4,7 @@ scripts/out/**.json
 FlightPatternDetection/FallbackHistoryData/**.json
 FlightPatternDetection/FallbackHistoryData/**.kml
 FlightPatternDetection/appsettings.Development.json
+FlightPatternDetection/appsettings.Amazon.json
 
 FlightPatternDetection/NAVDB.sqlite
 
