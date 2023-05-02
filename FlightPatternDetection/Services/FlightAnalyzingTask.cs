@@ -13,7 +13,7 @@ namespace FlightPatternDetection.Services
     {
         private IServiceScope m_applicationScope;
         private ApplicationDbContext m_dbContext;
-        private DetectionEngine m_engnie;
+        private DetectionEngine m_engine;
         private TrafficClient m_trafficClient;
         public FlightAnalyzingTask(ILogger<FlightAnalyzingTask> logger, TrafficClient trafficClient, IServiceProvider services, NavDbManager navDbManager, IScheduleConfig<FlightAnalyzingTask> config)
         : base(config.CronExpression, config.TimeZoneInfo, config.RunImmediately)
@@ -23,7 +23,7 @@ namespace FlightPatternDetection.Services
             var serviceProvider = m_applicationScope.ServiceProvider ?? throw new ApplicationException("Unable to fetch service-provider in " + nameof(FlightAnalyzingTask));
             m_dbContext = serviceProvider.GetService<ApplicationDbContext>() ?? throw new ApplicationException("Service-provider contains no " + nameof(ApplicationDbContext));
 
-            m_engnie = new DetectionEngine(EngineController.DetectionCheckDistance, navDbManager);
+            m_engine = new DetectionEngine(EngineController.DetectionCheckDistance, navDbManager);
             m_trafficClient = trafficClient;
         }
 
@@ -75,7 +75,7 @@ namespace FlightPatternDetection.Services
                             continue;
                         }
 
-                        var result = m_engnie.AnalyseFlight(flightData);
+                        var result = m_engine.AnalyseFlight(flightData);
                         flight.DidHold = result.IsHolding;
                         if (result.IsHolding)
                         {
