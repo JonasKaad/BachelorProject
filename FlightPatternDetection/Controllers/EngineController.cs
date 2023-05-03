@@ -27,7 +27,7 @@ namespace FlightPatternDetection.Controllers
             _navDbManager = navDbManager;
             _context = applicationDbContext;
 
-            _fallbackController = new FallbackAircraftTrafficController();
+            _fallbackController = new FallbackAircraftTrafficController(_context);
 
             _simpleDetectionEngine = new DetectionEngine(DetectionCheckDistance, navDbManager);
         }
