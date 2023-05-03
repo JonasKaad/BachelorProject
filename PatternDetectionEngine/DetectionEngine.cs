@@ -125,7 +125,6 @@ public class DetectionEngine
         }
 
         //Holdings were found. Find the laps and stuff.
-
 #if DEBUG
         Console.WriteLine("Copy paste to JavaScript console");
         foreach (var holding in foundHoldings)
@@ -145,11 +144,11 @@ public class DetectionEngine
         var headingDiff = CalculateDirection(cleanedData, firstInversionPoint);
         if (headingDiff is null)
             return new();
-        
+
         var fixPoint = FindHoldingFixPoint(cleanedData, firstInversionPoint, lastInversionPoint, theHoldingPattern) ??
                     new EWayPoint(
                         theHoldingPattern.First().Lat,
-                        theHoldingPattern.First().Lon, 
+                        theHoldingPattern.First().Lon,
                         "FIX",
                         -1)
                     {
@@ -182,16 +181,16 @@ public class DetectionEngine
         var lonDiff = 180.0;
         var latDiff = 90.0;
 
-        var waypointsAroundHolding = _navDbManager.Waypoints.Where(waypoint => 
+        var waypointsAroundHolding = _navDbManager.Waypoints.Where(waypoint =>
             IsCloseEnough(waypoint, firstInversionPoint, pointBuffer)
         ).ToList();
-        
-        var closePoints = waypointsAroundHolding.Where(p => 
+
+        var closePoints = waypointsAroundHolding.Where(p =>
             holdingPoints.Any(h => IsCloseEnough(p, h, 0.025))
         ).ToList();
         if (closePoints.Any())
             return closePoints.First();
-        
+
         foreach (var point in trafficPositions)
         {
             foreach (var fixPoint in waypointsAroundHolding)
@@ -199,8 +198,8 @@ public class DetectionEngine
                 var pointLonDiff = Math.Abs(fixPoint.Longitude - point.Lon);
                 var pointLatDiff = Math.Abs(fixPoint.Latitude - point.Lat);
                 if (pointLatDiff + pointLonDiff > lonDiff + latDiff)
-                    continue;                                                
-                possibleFixPoint = fixPoint;                                
+                    continue;
+                possibleFixPoint = fixPoint;
                 lonDiff = pointLonDiff;
                 latDiff = pointLatDiff;
             }
