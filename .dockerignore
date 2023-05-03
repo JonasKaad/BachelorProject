@@ -1,0 +1,12 @@
+.git/
+.vs/
+.idea/
+*.md
+*.env
+scripts/**.json
+scripts/out/**.json
+
+FlightPatternDetection/FallbackHistoryData/**.json
+FlightPatternDetection/FallbackHistoryData/**.kml
+FlightPatternDetection/appsettings.Development.json
+**.nswag

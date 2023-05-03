@@ -1,8 +1,8 @@
-using FlightPatternDetection;
+using FlightPatternDetection.CronJobService;
 using FlightPatternDetection.Services;
-using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 using TrafficApiClient;
+using TrafficStreamingApiClient;
 
 namespace FlightPatternDetection
 {
@@ -21,9 +21,26 @@ namespace FlightPatternDetection
             });
 
             builder.Services.AddSingleton(sp => new TrafficClient(builder.Configuration["trafficClientEndpoint"]));
+            builder.Services.AddSingleton(sp => new TrafficStreamingClient(builder.Configuration["trafficStreamingClientEndpoint"]));
             builder.Services.AddSingleton<NavDbManager>();
             builder.Services.AddSwaggerGen();
 
+            if (bool.TryParse(builder.Configuration["enableAutomatedCollection"], out bool enableAutomatedCollection) && enableAutomatedCollection)
+            {
+                builder.Services.AddCronJob<FlightAccumulationTask>(c =>
+                {
+                    c.TimeZoneInfo = TimeZoneInfo.Utc;
+                    c.RunImmediately = true;
+                    c.CronExpression = "0 * * * *"; //At the start of every hour
+                });
+
+                builder.Services.AddCronJob<FlightAnalyzingTask>(c =>
+                {
+                    c.TimeZoneInfo = TimeZoneInfo.Utc;
+                    c.RunImmediately = true;
+                    c.CronExpression = "*/30 * * * *"; //Every 30 minutes
+                });
+            }
 
             // Replace with your connection string.
             var connectionString = builder.Configuration["mysqlConnectionString"];
