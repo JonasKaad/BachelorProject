@@ -66,6 +66,7 @@ namespace FlightPatternDetection.Services
                     }
 
                     flight.IsProcessed = true;
+                    var airportsAdded = new List<string>();
                     try
                     {
                         var flightData = (await m_trafficClient.HistoryAsync(flight.FlightId, maxAgeSeconds: null)).ToList();
@@ -82,10 +83,14 @@ namespace FlightPatternDetection.Services
                             flight.RawJson = ZipUtils.ZipData(JsonConvert.SerializeObject(flightData));
                         }
                     }
-                    catch (ApiException ex)
+                    catch (Exception ex)
                     {
-                        failedAttempts++;
-                        Log?.LogWarning($"Failed to fetch history for a single");
+                        if (ex is ApiException || ex is MySqlException)
+                        {
+                            failedAttempts++;
+                            Log?.LogWarning($"Failed to fetch history for a single");
+                        }
+                        throw;
                     }
 
                     if (++currentBatch >= BatchSize)
