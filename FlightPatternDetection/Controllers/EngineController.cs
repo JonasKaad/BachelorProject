@@ -52,7 +52,7 @@ namespace FlightPatternDetection.Controllers
         private async Task<Airport> CreateOrFetchAirport(string _Name, object _Country, string _ICAO, double _Lat, double _Lon)
         {
             var newAirport = new Airport();
-            if (!await _context.Airports.AnyAsync(x => x.ICAO == _ICAO))
+            if (!await _context.Airports.AnyAsync(x => x.ICAO == _ICAO)) // Checks if airport already exists in database
             {
                 newAirport = new Airport()
                 {
@@ -88,7 +88,7 @@ namespace FlightPatternDetection.Controllers
 
                 if (result.Result is OkObjectResult okResult && okResult.Value is List<TrafficPosition> positions)
                 {
-
+                    // Creates flight
                     if (!await _context.Flights.AnyAsync(x => x.FlightId == request.FlightId))
                     {
                         var newFlight = new Flight()
@@ -103,69 +103,74 @@ namespace FlightPatternDetection.Controllers
                         await _context.SaveChangesAsync();
                     }
 
-                    Airport orig = null;
-                    Airport dest = null;
+                    // Origin and Destination, going to be used in creation of Route Information, if they're not null after attempting to fetch airports.
+                    Airport origin = null;
+                    Airport destination = null;
 
                     if (GetString(positions, x => x?.Orig ?? string.Empty) != string.Empty)
                     {
+                        // Checks first data points and tries to the find closest airport in NavDB
                         EAirport originAirport = AirportNavDB(positions.First().Lat, positions.First().Lon);
                         if (originAirport.Identifier != "_")
                         {
                             var nameICAO = "";
-                            if (originAirport.ICAO == "")
+                            if (originAirport.ICAO == "") // If there is no ICAO for the found Airport database in NavDB
                             {
-                                nameICAO = originAirport.FullName;
+                                nameICAO = originAirport.FullName; // Set the ICAO to be the full name of the Airport
                             }
                             else
                             {
-                                nameICAO = originAirport.ICAO;
+                                nameICAO = originAirport.ICAO; // Otherwise the ICAO is as presented in NavDB
                             }
-                            orig = await CreateOrFetchAirport(originAirport.Name, originAirport.Country.Name, nameICAO, originAirport.Latitude, originAirport.Longitude);
+                            origin = await CreateOrFetchAirport(originAirport.Name, originAirport.Country.Name, nameICAO, originAirport.Latitude, originAirport.Longitude);
                         }
                     }
                     else
                     {
+                        // Checks the data and finds the first occurence of the origin Airport ICAO
                         EAirport origAirport = _navDbManager.Airports.First(x => x.ICAO == GetString(positions, x => x?.Orig ?? string.Empty));
-                        orig = await CreateOrFetchAirport(origAirport.Name, origAirport.Country.Name, origAirport.ICAO, origAirport.Latitude, origAirport.Longitude);
+                        origin = await CreateOrFetchAirport(origAirport.Name, origAirport.Country.Name, origAirport.ICAO, origAirport.Latitude, origAirport.Longitude);
                     }
 
                     if (GetString(positions, x => x?.Dest ?? string.Empty) != string.Empty)
                     {
+                        // Checks last data points and tries to the find closest airport in NavDB
                         EAirport destinationAirport = AirportNavDB(positions.Last().Lat, positions.Last().Lon);
-                        if (destinationAirport.Identifier != "_")
+                        if (destinationAirport.Identifier != "_") // Default case 
                         {
                             var nameICAO = "";
-                            if (destinationAirport.ICAO == "")
+                            if (destinationAirport.ICAO == "") // If there is no ICAO for the found Airport database in NavDB
                             {
-                                nameICAO = destinationAirport.FullName;
+                                nameICAO = destinationAirport.FullName; // Set the ICAO to be the full name of the Airport
                             }
                             else
                             {
-                                nameICAO = destinationAirport.ICAO;
+                                nameICAO = destinationAirport.ICAO; // Otherwise the ICAO is as presented in NavDB
                             }
-                            dest = await CreateOrFetchAirport(destinationAirport.Name, destinationAirport.Country.Name, nameICAO, destinationAirport.Latitude, destinationAirport.Longitude);
+                            destination = await CreateOrFetchAirport(destinationAirport.Name, destinationAirport.Country.Name, nameICAO, destinationAirport.Latitude, destinationAirport.Longitude);
                         }
                     }
                     else
                     {
+                        // Checks the data and finds the first occurence of the destination Airport ICAO
                         EAirport destAirport = _navDbManager.Airports.First(x => x.ICAO == GetString(positions, x => x?.Dest ?? string.Empty));
-                        dest = await CreateOrFetchAirport(destAirport.Name, destAirport.Country.Name, destAirport.ICAO, destAirport.Latitude, destAirport.Longitude);
+                        destination = await CreateOrFetchAirport(destAirport.Name, destAirport.Country.Name, destAirport.ICAO, destAirport.Latitude, destAirport.Longitude);
                     }
 
-                    if (orig != null && dest != null)
+                    if (origin != null && destination != null)
                     {
                         if (!await _context.RouteInformation.AnyAsync(x => x.FlightId == request.FlightId))
                         {
+                            // Creates new entry for the Route Information Table
                             var newRoute = new RouteInformation()
                             {
                                 FlightId = request.FlightId,
-                                Origin = orig,
-                                Destination = dest,
-                                Takeoff_Time = DateTimeOffset.FromUnixTimeMilliseconds(positions.First().Clock).DateTime,
+                                Origin = origin,
+                                Destination = destination,
+                                Takeoff_Time = DateTimeOffset.FromUnixTimeSeconds(positions.First().Clock).DateTime,
                             };
 
                             _context.RouteInformation.Add(newRoute);
-                            await _context.SaveChangesAsync();
                         }
                     }
                     await _context.SaveChangesAsync();
@@ -215,20 +220,27 @@ namespace FlightPatternDetection.Controllers
 
             if (isHolding.IsHolding != false)
             {
+                // Checks if holdingPattern is already in database
+                var FlightID = GetLong(flight, x => x.Id);
+                var holdingPattern = _context.HoldingPatterns.FirstOrDefault(x => x.FlightId == FlightID);
 
-                var newHoldingPattern = new HoldingPattern()
+                if (holdingPattern == null) // If it is not in DB, add it
                 {
-                    FlightId = GetLong(flight, x => x.Id), // Takes from the middle element
-                    Fixpoint = "xyz",
-                    Laps = isHolding.Laps,
-                    Direction = (Direction)isHolding.Direction,
-                    LegDistance = 10,
-                    Altitude = isHolding.Altitude,
-                };
-                _context.HoldingPatterns.Add(newHoldingPattern);
+                    var newHoldingPattern = new HoldingPattern()
+                    {
+                        FlightId = GetLong(flight, x => x.Id),
+                        Fixpoint = isHolding.FixPoint.Name,
+                        Laps = isHolding.Laps,
+                        Direction = (Direction)isHolding.Direction,
+                        LegDistance = 10, // 10 Nautical Miles
+                        Altitude = isHolding.Altitude,
+                    };
+                    _context.HoldingPatterns.Add(newHoldingPattern);
 
-                _context.SaveChanges();
+                    _context.SaveChanges();
+                }
             }
+
             return isHolding;
 
         }
@@ -239,6 +251,14 @@ namespace FlightPatternDetection.Controllers
             return flightId;
         }
 
+        /// <summary>
+        /// This method looks through the list of TrafficPositions and finds the first case
+        /// where the given String is not whitespace or null. I.e. where the entry has some data.
+        /// This is used to find occurnces of airports, flightid etc.
+        /// </summary>
+        /// <param name="flight"></param>
+        /// <param name="selector"></param>
+        /// <returns>String</returns>
         private string GetString(List<TrafficPosition> flight, Func<TrafficPosition?, string> selector)
         {
             var tempFlight = flight.FirstOrDefault(x => !string.IsNullOrWhiteSpace(selector(x)));
