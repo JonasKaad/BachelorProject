@@ -72,6 +72,7 @@
                 }
                 else
                 {
+                    <button class="btn btn-primary btn-sm" disabled="@IsCalculating" @onclick="LoadHoldings">Load all holdings from DB</button>
                     <button class="btn btn-primary btn-sm" disabled="@IsCalculating" @onclick="LoadFallbackList">Load all fallback</button>
                     <button class="btn btn-primary btn-sm" disabled="@IsCalculating" @onclick="OpenFileImporter">Import JSON file</button>
                     <InputFile @ref="FileImporter" id="flightFileImporter" OnChange="ImportFlightList" class="d-none" />
@@ -372,4 +373,22 @@
         using var streamRef = new DotNetStreamReference(stream: stream);
         await jsRuntime.InvokeVoidAsync("downloadFileFromStream", FlightId + ".json", streamRef);
     }
+
+    private async Task LoadHoldings()
+    {
+        IsCalculating = true;
+        CalculatingText = "Loading holding patterns from database...";
+        UseFallbackApi = true;
+        StateHasChanged();
+        try
+        {
+            FallbackFlights = await httpClient.GetFromJsonAsync<List<string>>("fallback/holdings");
+        }
+        finally
+        {
+            IsCalculating = false;
+            StateHasChanged();
+        }
+    }
+
 }
