@@ -4,7 +4,6 @@ create table Flight
         primary key
         unique,
     Registration VARCHAR(20) null,
-    Model        VARCHAR(50) null,
     ICAO         CHAR(4)     not null,
     Mode_S       VARCHAR(10) null,
     Call_Sign    VARCHAR(10) null
@@ -42,7 +41,6 @@ create table Route_Information
     Destination_ICAO VARCHAR(100)   null,
     Origin_ICAO      VARCHAR(100)   null,
     Takeoff_Time     TIMESTAMP null,
-    ATC_Route        LONGTEXT  null,
     constraint Route_Information_Airport_ICAO_fk
         foreign key (Destination_ICAO) references Airport (ICAO),
     constraint Route_Information_Airport_ICAO_fk_2

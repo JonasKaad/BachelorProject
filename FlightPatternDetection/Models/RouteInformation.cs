@@ -16,8 +16,6 @@ public class RouteInformation
     [ForeignKey("Origin_ICAO")]
     public Airport? Origin { get; set; }
     public DateTime Takeoff_Time { get; set; }
-    [Column(name: "ATC_Route")]
-    public string? ATCRoute { get; set; }
 
 
 }

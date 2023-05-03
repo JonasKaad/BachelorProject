@@ -82,30 +82,6 @@ namespace FlightPatternDetection.Controllers
                 return BadRequest("Request must not be null, and the FlightId must be positive");
             }
 
-            //if (await _context.Flights.AnyAsync(x => x.FlightId == request.FlightId))
-            //{
-            //    if (await _context.HoldingPatterns.AnyAsync(x => x.FlightId == request.FlightId))
-            //    {
-            //        var HoldingPattern = await _context.HoldingPatterns.FirstAsync(x => x.FlightId == request.FlightId);
-
-            //        var convertedHoldingPattern = new HoldingResult()
-            //        {
-            //            IsHolding = true,
-            //            DetectionTime = TimeSpan.Zero,
-            //            Direction = (HoldingDirection)HoldingPattern.Direction,
-            //            Altitude = (int)HoldingPattern.Altitude,
-            //            Laps = HoldingPattern.Laps,
-            //        };
-            //        return convertedHoldingPattern;
-            //    }
-            //    else
-            //    {
-            //        return new HoldingResult() { IsHolding = false, DetectionTime = TimeSpan.Zero };
-            //    }
-            //}
-
-
-
             if (request.UseFallback)
             {
                 var result = _fallbackController.GetAircraftHistoryAsync(request.FlightId);
@@ -144,19 +120,13 @@ namespace FlightPatternDetection.Controllers
                             {
                                 nameICAO = originAirport.ICAO;
                             }
-                            if (!await _context.Airports.AnyAsync(x => x.ICAO == nameICAO))
-                            {
-                                orig = await CreateOrFetchAirport(originAirport.Name, originAirport.Country.Name, nameICAO, originAirport.Latitude, originAirport.Longitude);
-                            }
+                            orig = await CreateOrFetchAirport(originAirport.Name, originAirport.Country.Name, nameICAO, originAirport.Latitude, originAirport.Longitude);
                         }
                     }
                     else
                     {
                         EAirport origAirport = _navDbManager.Airports.First(x => x.ICAO == GetString(positions, x => x?.Orig ?? string.Empty));
-                        if (!await _context.Airports.AnyAsync(x => x.ICAO == origAirport.ICAO))
-                        {
-                            orig = await CreateOrFetchAirport(origAirport.Name, origAirport.Country.Name, origAirport.ICAO, origAirport.Latitude, origAirport.Longitude);
-                        }
+                        orig = await CreateOrFetchAirport(origAirport.Name, origAirport.Country.Name, origAirport.ICAO, origAirport.Latitude, origAirport.Longitude);
                     }
 
                     if (GetString(positions, x => x?.Dest ?? string.Empty) != string.Empty)
@@ -173,25 +143,18 @@ namespace FlightPatternDetection.Controllers
                             {
                                 nameICAO = destinationAirport.ICAO;
                             }
-                            if (!await _context.Airports.AnyAsync(x => x.ICAO == nameICAO))
-                            {
-                                dest = await CreateOrFetchAirport(destinationAirport.Name, destinationAirport.Country.Name, nameICAO, destinationAirport.Latitude, destinationAirport.Longitude);
-                            }
-
+                            dest = await CreateOrFetchAirport(destinationAirport.Name, destinationAirport.Country.Name, nameICAO, destinationAirport.Latitude, destinationAirport.Longitude);
                         }
                     }
                     else
                     {
                         EAirport destAirport = _navDbManager.Airports.First(x => x.ICAO == GetString(positions, x => x?.Dest ?? string.Empty));
-                        if (!await _context.Airports.AnyAsync(x => x.ICAO == destAirport.ICAO))
-                        {
-                            dest = await CreateOrFetchAirport(destAirport.Name, destAirport.Country.Name, destAirport.ICAO, destAirport.Latitude, destAirport.Longitude);
-                        }
+                        dest = await CreateOrFetchAirport(destAirport.Name, destAirport.Country.Name, destAirport.ICAO, destAirport.Latitude, destAirport.Longitude);
                     }
 
                     if (orig != null && dest != null)
                     {
-                        if (await _context.RouteInformation.AnyAsync(x => x.FlightId == request.FlightId))
+                        if (!await _context.RouteInformation.AnyAsync(x => x.FlightId == request.FlightId))
                         {
                             var newRoute = new RouteInformation()
                             {
@@ -199,10 +162,10 @@ namespace FlightPatternDetection.Controllers
                                 Origin = orig,
                                 Destination = dest,
                                 Takeoff_Time = DateTimeOffset.FromUnixTimeMilliseconds(positions.First().Clock).DateTime,
-                                ATCRoute = "DCT",
                             };
 
                             _context.RouteInformation.Add(newRoute);
+                            await _context.SaveChangesAsync();
                         }
                     }
                     await _context.SaveChangesAsync();
@@ -259,7 +222,7 @@ namespace FlightPatternDetection.Controllers
                     Fixpoint = "xyz",
                     Laps = isHolding.Laps,
                     Direction = (Direction)isHolding.Direction,
-                    LegDistance = 12.2,
+                    LegDistance = 10,
                     Altitude = isHolding.Altitude,
                 };
                 _context.HoldingPatterns.Add(newHoldingPattern);
