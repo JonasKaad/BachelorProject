@@ -3,7 +3,11 @@ using FlightPatternDetection.DTO.NavDBEntities;
 using FlightPatternDetection.Models;
 using FlightPatternDetection.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using MySqlConnector;
+using System.Collections.Generic;
+using System.Diagnostics.Metrics;
+using System.Xml.Linq;
 using TrafficApiClient;
 
 namespace FlightPatternDetection
@@ -41,23 +45,18 @@ namespace FlightPatternDetection
                 EAirport originAirport = AirportNavDB(positions.First().Lat, positions.First().Lon, _navDbManager);
                 if (originAirport.Identifier != "_")
                 {
-                    var nameICAO = "";
-                    if (originAirport.ICAO == "") // If there is no ICAO for the found Airport database in NavDB
-                    {
-                        nameICAO = originAirport.FullName; // Set the ICAO to be the full name of the Airport
-                    }
-                    else
-                    {
-                        nameICAO = originAirport.ICAO; // Otherwise the ICAO is as presented in NavDB
-                    }
-                    origin = await CreateOrFetchAirport(originAirport.Name, originAirport.Country.Name, nameICAO, originAirport.Latitude, originAirport.Longitude, _dbContext);
+                    var _ICAO = AirportICAOHandler(originAirport);
+                    var _Country = AirportCountryHandler(originAirport);
+                    origin = await CreateOrFetchAirport(originAirport.Name, _Country, _ICAO, originAirport.Latitude, originAirport.Longitude, _dbContext);
                 }
             }
             else
             {
-                // Checks the data and finds the first occurence of the origin Airport ICAO
+                // Checks the data and finds the first occurrence of the origin Airport ICAO
                 EAirport origAirport = _navDbManager.Airports.First(x => x.ICAO == GetString(positions, x => x?.Orig ?? string.Empty));
-                origin = await CreateOrFetchAirport(origAirport.Name, origAirport.Country.Name, origAirport.ICAO, origAirport.Latitude, origAirport.Longitude, _dbContext);
+                var _ICAO = AirportICAOHandler(origAirport);
+                var _Country = AirportCountryHandler(origAirport);
+                origin = await CreateOrFetchAirport(origAirport.Name, _Country, _ICAO, origAirport.Latitude, origAirport.Longitude, _dbContext);
             }
 
             if (GetString(positions, x => x?.Dest ?? string.Empty) != string.Empty)
@@ -66,23 +65,18 @@ namespace FlightPatternDetection
                 EAirport destinationAirport = AirportNavDB(positions.Last().Lat, positions.Last().Lon, _navDbManager);
                 if (destinationAirport.Identifier != "_") // Default case 
                 {
-                    var nameICAO = "";
-                    if (destinationAirport.ICAO == "") // If there is no ICAO for the found Airport database in NavDB
-                    {
-                        nameICAO = destinationAirport.FullName; // Set the ICAO to be the full name of the Airport
-                    }
-                    else
-                    {
-                        nameICAO = destinationAirport.ICAO; // Otherwise the ICAO is as presented in NavDB
-                    }
-                    destination = await CreateOrFetchAirport(destinationAirport.Name, destinationAirport.Country.Name, nameICAO, destinationAirport.Latitude, destinationAirport.Longitude, _dbContext);
+                    var _ICAO = AirportICAOHandler(destinationAirport);
+                    var _Country = AirportCountryHandler(destinationAirport);
+                    destination = await CreateOrFetchAirport(destinationAirport.Name, _Country, _ICAO, destinationAirport.Latitude, destinationAirport.Longitude, _dbContext);
                 }
             }
             else
             {
-                // Checks the data and finds the first occurence of the destination Airport ICAO
+                // Checks the data and finds the first occurrence of the destination Airport ICAO
                 EAirport destAirport = _navDbManager.Airports.First(x => x.ICAO == GetString(positions, x => x?.Dest ?? string.Empty));
-                destination = await CreateOrFetchAirport(destAirport.Name, destAirport.Country.Name, destAirport.ICAO, destAirport.Latitude, destAirport.Longitude, _dbContext);
+                var _ICAO = AirportICAOHandler(destAirport);
+                var _Country = AirportCountryHandler(destAirport);
+                destination = await CreateOrFetchAirport(destAirport.Name, _Country, _ICAO, destAirport.Latitude, destAirport.Longitude, _dbContext);
             }
 
             // Route Information
@@ -105,18 +99,19 @@ namespace FlightPatternDetection
             }
         }
 
-        public static void RecordHoldingPattern(ApplicationDbContext _context, HoldingResult isHolding, List<TrafficPosition> positions)
+        public static void RecordHoldingPattern(ApplicationDbContext dbContext, HoldingResult isHolding, List<TrafficPosition> positions)
         {
+            var FlightID = GetLong(positions, x => x.Id);
             var newHoldingPattern = new HoldingPattern()
             {
-                FlightId = GetLong(positions, x => x.Id),
+                FlightId = FlightID,
                 Fixpoint = isHolding.FixPoint.Name,
                 Laps = isHolding.Laps,
-                Direction = (Direction)isHolding.Direction,
+                Direction = isHolding.Direction == HoldingDirection.Right ? Direction.RIGHT : Direction.LEFT,
                 LegDistance = 10, // 10 Nautical Miles
                 Altitude = isHolding.Altitude,
             };
-            _context.HoldingPatterns.Add(newHoldingPattern);
+            dbContext.HoldingPatterns.Add(newHoldingPattern);
         }
 
         private static EAirport AirportNavDB(double lat, double lon, NavDbManager _navDbManager)
@@ -133,35 +128,48 @@ namespace FlightPatternDetection
 
         }
 
-        private static async Task<Airport> CreateOrFetchAirport(string _Name, object _Country, string _ICAO, double _Lat, double _Lon, ApplicationDbContext _context)
+        private static string AirportICAOHandler(EAirport eAirport)
+        {
+            string? ICAO = eAirport.ICAO ?? eAirport.FullName;
+            return ICAO;
+        }
+
+        private static string AirportCountryHandler(EAirport eAirport)
+        {
+            string? countryName = eAirport.Country?.Name ?? eAirport.City ?? "Country Not Found";
+            return countryName;
+        }
+
+        private static object _AirportCreationLock = new object();
+        private static async Task<Airport> CreateOrFetchAirport(string _Name, string _Country, string _ICAO, double _Lat, double _Lon, ApplicationDbContext _context)
         {
             if (await _context.Airports.FirstOrDefaultAsync(x => x.ICAO == _ICAO) is { } airport) // Checks if airport already exists in database
             {
                 return airport;
             }
 
-            var newAirport = new Airport()
+            lock (_AirportCreationLock)
             {
-                Name = _Name,
-                Country = _Country.ToString(),
-                ICAO = _ICAO,
-                Latitude = _Lat,
-                Longitude = _Lon,
-            };
-            try
-            {
-                _context.Airports.Add(newAirport);
-            }
-            catch (Exception ex)
-            {
-                if (ex is InvalidOperationException || ex is MySqlException)
+                if (_context.Airports.FirstOrDefault(x => x.ICAO == _ICAO) is { } LockAirport) // Checks if airport already exists in database
                 {
-                    //It is already there! Let's just assume that it's fine then! :D 
+                    return LockAirport;
                 }
+                var dbConnectionObject = _context.Database.GetDbConnection();
+                if (dbConnectionObject.State == System.Data.ConnectionState.Closed)
+                {
+                    dbConnectionObject.Open();
+                }
+                using var sqlCommand = dbConnectionObject.CreateCommand();
+                sqlCommand.CommandText = "INSERT INTO Airport (Name, Country, ICAO, Latitude, Longitude) VALUES(@Name, @Country, @ICAO, @Lat, @Lon) ON DUPLICATE KEY UPDATE ICAO = ICAO";
+                sqlCommand.Parameters.Add(new MySqlParameter("@Name", _Name));
+                sqlCommand.Parameters.Add(new MySqlParameter("@Country", _Country));
+                sqlCommand.Parameters.Add(new MySqlParameter("@ICAO", _ICAO));
+                sqlCommand.Parameters.Add(new MySqlParameter("@Lat", _Lat));
+                sqlCommand.Parameters.Add(new MySqlParameter("@Lon", _Lon));
+                sqlCommand.ExecuteNonQuery();
+                return _context.Airports.First(x => x.ICAO == _ICAO);
             }
-            return newAirport;
         }
-
         private static long GetLong(List<TrafficPosition> flight, Func<TrafficPosition?, string> selector)
         {
             long.TryParse(GetString(flight, selector) ?? "-1", out long flightId);

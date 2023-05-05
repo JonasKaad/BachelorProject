@@ -63,7 +63,7 @@ namespace FlightPatternDetection.Controllers
                         _logger?.LogWarning($"Failed to fetch history for a single." + " Total fails: " + failedAttempts);
                         //{ ex.Message};
                     }
-                    return Ok(AnalyzeFlightInternalAsync(positions));
+                    return Ok(await AnalyzeFlightInternalAsync(positions));
                 }
                 else
                 {
@@ -78,7 +78,7 @@ namespace FlightPatternDetection.Controllers
                     if (positions.Any())
                     {
                         //
-                        return Ok(AnalyzeFlightInternalAsync(positions));
+                        return Ok(await AnalyzeFlightInternalAsync(positions));
                     }
                     else
                     {
@@ -110,7 +110,7 @@ namespace FlightPatternDetection.Controllers
             {
                 // Checks if holdingPattern is already in database
                 var FlightID = GetLong(flight, x => x.Id);
-                var holdingPattern = _context.HoldingPatterns.FirstOrDefault(x => x.FlightId == FlightID);
+                var holdingPattern = await _context.HoldingPatterns.FirstOrDefaultAsync(x => x.FlightId == FlightID);
 
                 if (holdingPattern == null) // If it is not in DB, add it
                 {

@@ -13,7 +13,7 @@ create table Holding_Pattern
 (
     Flight_Id    BIGINT                    not null
         primary key,
-    Fixpoint     VARCHAR(15)            null,
+    Fixpoint     VARCHAR(200)            null,
     Laps         int                    null,
     Direction    ENUM ('RIGHT', 'LEFT') null,
     Leg_Distance double                 null,
