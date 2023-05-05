@@ -1,9 +1,43 @@
 ﻿@page "/"
 
-<PageTitle>Index</PageTitle>
+<PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>Welcome to the Holding Pattern analysis toolkit!</h1>
+<br />
+<h4>Below you can read about the different tools available:</h4>
 
-Welcome to your new app.
+<div class="list-group">
+    <a href="FlightVisualizer" class="list-group-item list-group-item-action flex-column align-items-start">
+        <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-2">Flight Visualizer</h5>
+        </div>
+        <p class="mb-2">
+            This tool allows you the see the route a individual flight has taken and whether or not a holding pattern occurred.
+        </p>
+    </a>
+    <a href="massdetection" class="list-group-item list-group-item-action flex-column align-items-start">
+        <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-2">Mass Detection</h5>
+        </div>
+        <p class="mb-2">
+            This tool allows you to analyze all the fallback flights in bulk, giving you a list of those with holding patterns.
+        </p>
+    </a>
+    <a href="aircrafttest" class="list-group-item list-group-item-action flex-column align-items-start">
+        <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-2">Fetch Flight Data</h5>
+        </div>
+        <p class="mb-2">
+            This tool allows you to insert a Flight Id from RadarBox and fetch the associated flight data.
+        </p>
+    </a>
+    <a href="swagger/index.html" class="list-group-item list-group-item-action flex-column align-items-start">
+        <div class="d-flex w-100 justify-content-between">
+            <h5 class="mb-2">Debug</h5>
+        </div>
+        <p class="mb-2">
+            This is a debugging tool for testing the functionality of all our endpoints.
 
-<SurveyPrompt Title="How is Blazor working for you?" />
+        </p>
+    </a>
+</div>
