@@ -50,6 +50,7 @@ namespace FlightPatternDetection.CronJobService
 
                 Log?.LogInformation($"CronJobService will fire next time: {next} (in approx. {delay.Days} day(s), {delay.Hours} hour(s) and {delay.Minutes} minutes)");
                 m_timer = new System.Timers.Timer(delay.TotalMilliseconds);
+                m_timer.AutoReset = false;
                 m_timer.Elapsed += async (sender, args) =>
                 {
                     m_timer.Dispose();  // reset and dispose timer
