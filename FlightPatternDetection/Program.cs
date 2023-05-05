@@ -31,7 +31,7 @@ namespace FlightPatternDetection
                 {
                     c.TimeZoneInfo = TimeZoneInfo.Utc;
                     c.RunImmediately = true;
-                    c.CronExpression = "0 * * * *"; //At the start of every hour
+                    c.CronExpression = "55 * * * *"; //Every :55 on the clock
                 });
 
                 builder.Services.AddCronJob<FlightAnalyzingTask>(c =>

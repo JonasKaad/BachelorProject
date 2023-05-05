@@ -22,6 +22,33 @@ namespace FlightPatternDetection.Controllers
             _context = context;
         }
 
+        [HttpGet("GetAllErrorsFromAutomatedDb")]
+        public async Task<ActionResult> GetAllErrorsFromAutomatedDbAsync()
+        {
+            var errors = await _context.AutomatedCollection.Where(x => x.IsProcessed
+                                                        && x.DidHold == null
+                                                        && x.RawJson != null)
+                                                        .ToListAsync();
+            var textErrors = new List<string>();
+            foreach (var error in errors)
+            {
+                textErrors.Add($" - {error.FlightId}, fetched {error.Fetched}. Stored data (first 20 chars): {error.RawJsonAsString()?.Substring(0, 20)}...");
+            }
+            return Content("All Errors: \n" + string.Join("\n", textErrors));
+        }
+
+        [HttpGet("GetRawDataFromJsonFieldInDb")]
+        public async Task<ActionResult> GetRawDataFromJsonFieldInDb(long flightId)
+        {
+            var data = await _context.AutomatedCollection.FirstOrDefaultAsync(x => x.FlightId == flightId);
+            if (data is null)
+            {
+                return NotFound("FlightId did not exist in the database");
+            }
+
+            return Ok(data.RawJsonAsString());
+        }
+
         [HttpGet("waypoints")]
         public IEnumerable<EWayPoint> GetWaypoints(int count = 100)
         {

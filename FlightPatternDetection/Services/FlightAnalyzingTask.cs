@@ -31,6 +31,7 @@ namespace FlightPatternDetection.Services
 
         public async override Task DoWork(CancellationToken cancellationToken)
         {
+            await Task.Delay(5000);
             Log?.LogInformation("Started flight analyzing");
 
             var fetchFlightsBefore = DateTime.UtcNow.Subtract(TimeSpan.FromHours(TrafficApiConstants.HoursToWaitBeforeAnalyzingFlight));
@@ -69,9 +70,10 @@ namespace FlightPatternDetection.Services
 
                     flight.IsProcessed = true;
                     var airportsAdded = new List<string>();
+                    List<TrafficPosition>? flightData = null;
                     try
                     {
-                        var flightData = (await m_trafficClient.HistoryAsync(flight.FlightId, maxAgeSeconds: null)).ToList();
+                        flightData = (await m_trafficClient.HistoryAsync(flight.FlightId, maxAgeSeconds: null)).ToList();
 
                         if (!flightData.Any())
                         {
@@ -89,12 +91,29 @@ namespace FlightPatternDetection.Services
                     }
                     catch (Exception ex)
                     {
-                        if (ex is ApiException || ex is MySqlException)
+                        if (ex is ApiException)
                         {
                             failedAttempts++;
                             Log?.LogWarning($"Failed to fetch history for a single");
                         }
-                        throw;
+                        else if(ex is MySqlException)
+                        {
+                          ; // Don't care, not as important, as it's only the airports that messes things up here.
+                        }
+                        else
+                        {
+                            //Other unhandled exception                           
+                            Log?.LogError($"Failed due to other unhandled exceptions: {ex}");
+                            flight.DidHold = null;
+                            if (flightData is not null)
+                            {
+                                flight.RawJson = ZipUtils.ZipData(JsonConvert.SerializeObject(flightData));
+                            }
+                            else
+                            {
+                                flight.RawJson = ZipUtils.ZipData(JsonConvert.SerializeObject(ex));
+                            }
+                        }
                     }
 
                     if (++currentBatch >= BatchSize)
