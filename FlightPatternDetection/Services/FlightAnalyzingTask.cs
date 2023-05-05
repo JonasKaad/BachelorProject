@@ -14,6 +14,7 @@ namespace FlightPatternDetection.Services
         private IServiceScope m_applicationScope;
         private ApplicationDbContext m_dbContext;
         private DetectionEngine m_engine;
+        private NavDbManager m_navDbManager;
         private TrafficClient m_trafficClient;
         public FlightAnalyzingTask(ILogger<FlightAnalyzingTask> logger, TrafficClient trafficClient, IServiceProvider services, NavDbManager navDbManager, IScheduleConfig<FlightAnalyzingTask> config)
         : base(config.CronExpression, config.TimeZoneInfo, config.RunImmediately)
@@ -25,6 +26,7 @@ namespace FlightPatternDetection.Services
 
             m_engine = new DetectionEngine(EngineController.DetectionCheckDistance, navDbManager);
             m_trafficClient = trafficClient;
+            m_navDbManager = navDbManager;
         }
 
         public async override Task DoWork(CancellationToken cancellationToken)
@@ -77,9 +79,11 @@ namespace FlightPatternDetection.Services
                         }
 
                         var result = m_engine.AnalyseFlight(flightData);
+                        await FlightDatabaseUtils.RecordInDatabaseAsync(flightData, m_dbContext, m_navDbManager);
                         flight.DidHold = result.IsHolding;
                         if (result.IsHolding)
                         {
+                            FlightDatabaseUtils.RecordHoldingPattern(m_dbContext, result, flightData);
                             flight.RawJson = ZipUtils.ZipData(JsonConvert.SerializeObject(flightData));
                         }
                     }
