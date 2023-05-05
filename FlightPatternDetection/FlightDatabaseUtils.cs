@@ -3,11 +3,7 @@ using FlightPatternDetection.DTO.NavDBEntities;
 using FlightPatternDetection.Models;
 using FlightPatternDetection.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 using MySqlConnector;
-using System.Collections.Generic;
-using System.Diagnostics.Metrics;
-using System.Xml.Linq;
 using TrafficApiClient;
 
 namespace FlightPatternDetection
@@ -99,6 +95,7 @@ namespace FlightPatternDetection
             }
         }
 
+        // Stores holding patterns in the Database
         public static void RecordHoldingPattern(ApplicationDbContext dbContext, HoldingResult isHolding, List<TrafficPosition> positions)
         {
             var FlightID = GetLong(positions, x => x.Id);
@@ -128,12 +125,14 @@ namespace FlightPatternDetection
 
         }
 
+        // Handles the cases where the NavDB does not contain a name for the airport
         private static string AirportICAOHandler(EAirport eAirport)
         {
             string? ICAO = eAirport.ICAO ?? eAirport.FullName;
             return ICAO;
         }
 
+        // Handles the cases where the NavDB does not contain a country for the airport
         private static string AirportCountryHandler(EAirport eAirport)
         {
             string? countryName = eAirport.Country?.Name ?? eAirport.City ?? "Country Not Found";
@@ -141,6 +140,7 @@ namespace FlightPatternDetection
         }
 
         private static object _AirportCreationLock = new object();
+        // Method for creating airports or fetching them from the database if they already exist.
         private static async Task<Airport> CreateOrFetchAirport(string _Name, string _Country, string _ICAO, double _Lat, double _Lon, ApplicationDbContext _context)
         {
             if (await _context.Airports.FirstOrDefaultAsync(x => x.ICAO == _ICAO) is { } airport) // Checks if airport already exists in database
@@ -148,6 +148,7 @@ namespace FlightPatternDetection
                 return airport;
             }
 
+            // Manual SQL query to the database, to avoid situations where multiple threads try to add the same airport
             lock (_AirportCreationLock)
             {
                 if (_context.Airports.FirstOrDefault(x => x.ICAO == _ICAO) is { } LockAirport) // Checks if airport already exists in database
@@ -160,6 +161,7 @@ namespace FlightPatternDetection
                     dbConnectionObject.Open();
                 }
                 using var sqlCommand = dbConnectionObject.CreateCommand();
+                // Essentially makes it so that if the ICAO already exists in the database, don't try and add the duplicate value.
                 sqlCommand.CommandText = "INSERT INTO Airport (Name, Country, ICAO, Latitude, Longitude) VALUES(@Name, @Country, @ICAO, @Lat, @Lon) ON DUPLICATE KEY UPDATE ICAO = ICAO";
                 sqlCommand.Parameters.Add(new MySqlParameter("@Name", _Name));
                 sqlCommand.Parameters.Add(new MySqlParameter("@Country", _Country));
@@ -170,12 +172,23 @@ namespace FlightPatternDetection
                 return _context.Airports.First(x => x.ICAO == _ICAO);
             }
         }
-        private static long GetLong(List<TrafficPosition> flight, Func<TrafficPosition?, string> selector)
+
+        // Utilizes the @GetString method, but returns a long instead. Used for Flight ID's
+        public static long GetLong(List<TrafficPosition> flight, Func<TrafficPosition?, string> selector)
         {
             long.TryParse(GetString(flight, selector) ?? "-1", out long flightId);
             return flightId;
         }
 
+
+        /// <summary>
+        /// This method looks through the list of TrafficPositions and finds the first case
+        /// where the given String is not whitespace or null. I.e. where the entry has some data.
+        /// This is used to find occurrences of airports, flight id etc.
+        /// </summary>
+        /// <param name="flight"></param>
+        /// <param name="selector"></param>
+        /// <returns>String</returns>
         private static string GetString(List<TrafficPosition> flight, Func<TrafficPosition?, string> selector)
         {
             var tempFlight = flight.FirstOrDefault(x => !string.IsNullOrWhiteSpace(selector(x)));

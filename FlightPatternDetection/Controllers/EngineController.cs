@@ -1,8 +1,4 @@
-﻿
-
-using FlightPatternDetection.DTO;
-using FlightPatternDetection.DTO.NavDBEntities;
-using FlightPatternDetection.Models;
+﻿using FlightPatternDetection.DTO;
 using FlightPatternDetection.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -39,7 +35,6 @@ namespace FlightPatternDetection.Controllers
         [HttpPost("analyze")]
         public async Task<ActionResult<HoldingResult>> AnalyzeFlight(AnalyzeFlightRequest request)
         {
-            int failedAttempts = 0;
             if (request is null || request.FlightId <= 0)
             {
                 return BadRequest("Request must not be null, and the FlightId must be positive");
@@ -58,10 +53,7 @@ namespace FlightPatternDetection.Controllers
                     }
                     catch (MySqlException ex)
                     {
-                        // oh no
-                        failedAttempts++;
-                        _logger?.LogWarning($"Failed to fetch history for a single." + " Total fails: " + failedAttempts);
-                        //{ ex.Message};
+                        _logger?.LogWarning($"Failed to fetch history for a single." + ex.Message);
                     }
                     return Ok(await AnalyzeFlightInternalAsync(positions));
                 }
@@ -109,7 +101,7 @@ namespace FlightPatternDetection.Controllers
             if (isHolding.IsHolding != false)
             {
                 // Checks if holdingPattern is already in database
-                var FlightID = GetLong(flight, x => x.Id);
+                var FlightID = FlightDatabaseUtils.GetLong(flight, x => x.Id);
                 var holdingPattern = await _context.HoldingPatterns.FirstOrDefaultAsync(x => x.FlightId == FlightID);
 
                 if (holdingPattern == null) // If it is not in DB, add it
@@ -121,30 +113,6 @@ namespace FlightPatternDetection.Controllers
 
             return isHolding;
 
-        }
-
-        private long GetLong(List<TrafficPosition> flight, Func<TrafficPosition?, string> selector)
-        {
-            long.TryParse(GetString(flight, selector) ?? "-1", out long flightId);
-            return flightId;
-        }
-
-        /// <summary>
-        /// This method looks through the list of TrafficPositions and finds the first case
-        /// where the given String is not whitespace or null. I.e. where the entry has some data.
-        /// This is used to find occurnces of airports, flightid etc.
-        /// </summary>
-        /// <param name="flight"></param>
-        /// <param name="selector"></param>
-        /// <returns>String</returns>
-        private string GetString(List<TrafficPosition> flight, Func<TrafficPosition?, string> selector)
-        {
-            var tempFlight = flight.FirstOrDefault(x => !string.IsNullOrWhiteSpace(selector(x)));
-            if (tempFlight != null)
-            {
-                return selector(tempFlight);
-            }
-            return "---";
         }
     }
 }

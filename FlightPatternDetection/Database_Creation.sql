@@ -1,4 +1,4 @@
-create table Flight
+CREATE TABLE Flight
 (
     Flight_Id    BIGINT         not null
         primary key
@@ -9,7 +9,7 @@ create table Flight
     Call_Sign    VARCHAR(10) null
 );
 
-create table Holding_Pattern
+CREATE TABLE Holding_Pattern
 (
     Flight_Id    BIGINT                    not null
         primary key,
@@ -22,7 +22,7 @@ create table Holding_Pattern
         foreign key (Flight_Id) references Flight (Flight_Id)
 );
 
-create table Airport
+CREATE TABLE Airport
 (
     ICAO      VARCHAR(100)      not null
         primary key
@@ -34,7 +34,7 @@ create table Airport
 );
 
 
-create table Route_Information
+CREATE TABLE Route_Information
 (
     Flight_ID        BIGINT       null
         primary key,
