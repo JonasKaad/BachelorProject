@@ -22,6 +22,7 @@ namespace FlightPatternDetection.Services
 
         public async override Task DoWork(CancellationToken cancellationToken)
         {
+            await Task.Delay(5000);
             Log?.LogInformation("Fetching flight IDs");
             List<string> flightIdStr;
             try
