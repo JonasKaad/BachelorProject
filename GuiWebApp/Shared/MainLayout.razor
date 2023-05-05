@@ -6,8 +6,10 @@
     </div>
 
     <main>
+        
         <div class="top-row px-4">
-            <a href="https://docs.microsoft.com/aspnet/" target="_blank">About</a>
+            <span>UTC: @(DateTime.UtcNow.ToShortTimeString())</span>
+           
         </div>
 
         <article class="content px-4">
@@ -15,3 +17,14 @@
         </article>
     </main>
 </div>
+
+@code{
+    protected override void OnInitialized()
+    {
+        var timer = new System.Timers.Timer();
+        timer.Interval = 30 * 1000;
+        timer.AutoReset = true;
+        timer.Elapsed += (_,_) => StateHasChanged();
+        timer.Start();
+    }
+}
