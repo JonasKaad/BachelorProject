@@ -1,10 +1,9 @@
-﻿using System.Diagnostics;
-using System.Drawing;
-using System.Globalization;
-using FlightPatternDetection.DTO;
+﻿using FlightPatternDetection.DTO;
 using FlightPatternDetection.DTO.NavDBEntities;
 using FlightPatternDetection.Services;
 using PatternDetectionEngine.FlightFilters;
+using System.Diagnostics;
+using System.Globalization;
 using TrafficApiClient;
 
 namespace PatternDetectionEngine;
@@ -12,9 +11,8 @@ namespace PatternDetectionEngine;
 public class DetectionEngine
 {
     private double CheckDistance { get; }
-    private const int InvertedHeadingCount = 2;
     private const int InvertedHeadingBuffer = 5;
-    private const int AltitudeBuffer = 200;
+    private const int AltitudeBuffer = 250;
     private INavDbManager? _navDbManager;
 
     private List<IFlightFilter> FlightFilters { get; set; }
@@ -65,7 +63,7 @@ public class DetectionEngine
         TrafficPosition? lastInversionPoint = null;
         var foundHoldings = new List<List<TrafficPosition>>();
         var cleanedDataCopy = new List<TrafficPosition>(cleanedData);
-        const int pointsToTake = 10;
+        const int pointsToTake = 20;
         List<TrafficPosition>? currentHolding = null;
         while (cleanedDataCopy.Count > 0)
         {
@@ -73,7 +71,12 @@ public class DetectionEngine
             foreach (var nextPoint in cleanedDataCopy.Skip(1).Take(pointsToTake))
             {
                 //Find the next holding
-                if (IsInvertedHeading(currentPoint, nextPoint) && IsSameAltitude(currentPoint, nextPoint) && IsRecentEnough(currentPoint, nextPoint))
+                if (IsInvertedHeading(currentPoint, nextPoint) 
+                    && IsSameAltitude(currentPoint, nextPoint) 
+                    && IsRecentEnough(currentPoint, nextPoint)
+                    && IsDistantEnough(currentPoint, nextPoint, 0.055)
+                    && IsCloseEnough(currentPoint, nextPoint, 0.2)
+                    )
                 {
                     if (currentHolding is null)
                     {
@@ -134,9 +137,23 @@ public class DetectionEngine
                 Console.WriteLine($"addPoint({point.Lat.ToString(CultureInfo.InvariantCulture)}, {point.Lon.ToString(CultureInfo.InvariantCulture)});");
         }
 #endif
+        
 
         //TODO: Technically have support for more. But api DTO's does not. So for now, just treat as one. 
         var theHoldingPattern = foundHoldings.First();
+        
+        // Check that the points in the holding pattern are in a close enough cluster
+        foreach (var point in theHoldingPattern)
+        {
+            foreach (var holding in theHoldingPattern)
+            {
+                if(point == holding) continue;
+                if(!IsCloseEnough(point, holding, 0.3))
+                {
+                    return new();
+                }
+            }
+        }
 
         firstInversionPoint = theHoldingPattern.First();
         lastInversionPoint = theHoldingPattern.Last();
@@ -182,11 +199,11 @@ public class DetectionEngine
         var latDiff = 90.0;
 
         var waypointsAroundHolding = _navDbManager.Waypoints.Where(waypoint =>
-            IsCloseEnough(waypoint, firstInversionPoint, pointBuffer)
+            WaypointIsCloseEnough(waypoint, firstInversionPoint, pointBuffer)
         ).ToList();
 
         var closePoints = waypointsAroundHolding.Where(p =>
-            holdingPoints.Any(h => IsCloseEnough(p, h, 0.025))
+            holdingPoints.Any(h => WaypointIsCloseEnough(p, h, 0.025))
         ).ToList();
         if (closePoints.Any())
             return closePoints.First();
@@ -208,10 +225,21 @@ public class DetectionEngine
         return possibleFixPoint;
     }
 
-    private bool IsCloseEnough(EWayPoint waypoint, TrafficPosition point, double buffer)
+    // These methods should be updated with actual distance calculation instead of relying on lat, lon
+    private bool WaypointIsCloseEnough(EWayPoint waypoint, TrafficPosition point, double buffer)
     {
         return waypoint.Longitude >= point.Lon - buffer && waypoint.Longitude <= point.Lon + buffer &&
                waypoint.Latitude >= point.Lat - buffer && waypoint.Latitude <= point.Lat + buffer;
+    }
+
+    private bool IsDistantEnough(TrafficPosition point, TrafficPosition secondPoint, double buffer = 0.05)
+    {
+        return Math.Abs(Math.Sqrt(Math.Pow(point.Lat - secondPoint.Lat, 2) + Math.Pow(point.Lon - secondPoint.Lon, 2))) > buffer;
+    }
+
+    private bool IsCloseEnough(TrafficPosition point, TrafficPosition secondPoint, double buffer = 0.2)
+    {
+        return Math.Abs(Math.Sqrt(Math.Pow(point.Lat - secondPoint.Lat, 2) + Math.Pow(point.Lon - secondPoint.Lon, 2))) < buffer;
     }
 
     private bool IsRecentEnough(TrafficPosition point, TrafficPosition second)
@@ -235,7 +263,7 @@ public class DetectionEngine
 
     private bool IsInvertedHeading(TrafficPosition point, TrafficPosition second)
     {
-        return point.Heading < (second.Heading + (180 + InvertedHeadingBuffer)) % 360 && point.Heading > (second.Heading + (180 - InvertedHeadingBuffer)) % 360;
+        return point.Heading <= (second.Heading + (180 + InvertedHeadingBuffer)) % 360 && point.Heading >= (second.Heading + (180 - InvertedHeadingBuffer)) % 360;
     }
 
     private bool IsSameAltitude(TrafficPosition point, TrafficPosition second)
@@ -260,7 +288,6 @@ public class DetectionEngine
 
     public List<TrafficPosition> RemoveUnnecessaryPoints(List<TrafficPosition> flightData)
     {
-        // Could use navdb to get lat and long for destination airport instead of using last point.
 
         var lastLat = flightData.Last().Lat;
         var lastLon = flightData.Last().Lon;
