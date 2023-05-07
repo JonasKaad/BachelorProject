@@ -63,7 +63,7 @@ public class DetectionEngine
         TrafficPosition? lastInversionPoint = null;
         var foundHoldings = new List<List<TrafficPosition>>();
         var cleanedDataCopy = new List<TrafficPosition>(cleanedData);
-        const int pointsToTake = 20;
+        const int pointsToTake = 10;
         List<TrafficPosition>? currentHolding = null;
         while (cleanedDataCopy.Count > 0)
         {
@@ -74,8 +74,8 @@ public class DetectionEngine
                 if (IsInvertedHeading(currentPoint, nextPoint) 
                     && IsSameAltitude(currentPoint, nextPoint) 
                     && IsRecentEnough(currentPoint, nextPoint)
-                    && IsDistantEnough(currentPoint, nextPoint, 0.055)
-                    && IsCloseEnough(currentPoint, nextPoint, 0.2)
+                    && IsDistantEnough(currentPoint, nextPoint, 3.3)
+                    && IsCloseEnough(currentPoint, nextPoint, 12)
                     )
                 {
                     if (currentHolding is null)
@@ -143,12 +143,13 @@ public class DetectionEngine
         var theHoldingPattern = foundHoldings.First();
         
         // Check that the points in the holding pattern are in a close enough cluster
+        
         foreach (var point in theHoldingPattern)
         {
             foreach (var holding in theHoldingPattern)
             {
                 if(point == holding) continue;
-                if(!IsCloseEnough(point, holding, 0.3))
+                if(!IsCloseEnough(point, holding, 11))
                 {
                     return new();
                 }
@@ -228,18 +229,25 @@ public class DetectionEngine
     // These methods should be updated with actual distance calculation instead of relying on lat, lon
     private bool WaypointIsCloseEnough(EWayPoint waypoint, TrafficPosition point, double buffer)
     {
+        var point1 = new Coord(waypoint.Latitude, waypoint.Longitude);
+        var point2 = new Coord(point.Lat, point.Lon);
         return waypoint.Longitude >= point.Lon - buffer && waypoint.Longitude <= point.Lon + buffer &&
                waypoint.Latitude >= point.Lat - buffer && waypoint.Latitude <= point.Lat + buffer;
     }
 
     private bool IsDistantEnough(TrafficPosition point, TrafficPosition secondPoint, double buffer = 0.05)
     {
-        return Math.Abs(Math.Sqrt(Math.Pow(point.Lat - secondPoint.Lat, 2) + Math.Pow(point.Lon - secondPoint.Lon, 2))) > buffer;
+        var point1 = new Coord(point);
+        var point2 = new Coord(secondPoint);
+        return point1.DistanceTo(point2) >= buffer;
     }
 
     private bool IsCloseEnough(TrafficPosition point, TrafficPosition secondPoint, double buffer = 0.2)
     {
-        return Math.Abs(Math.Sqrt(Math.Pow(point.Lat - secondPoint.Lat, 2) + Math.Pow(point.Lon - secondPoint.Lon, 2))) < buffer;
+        var point1 = new Coord(point);
+        var point2 = new Coord(secondPoint);
+        var dist = point1.DistanceTo(point2);
+        return point1.DistanceTo(point2) <= buffer;
     }
 
     private bool IsRecentEnough(TrafficPosition point, TrafficPosition second)
