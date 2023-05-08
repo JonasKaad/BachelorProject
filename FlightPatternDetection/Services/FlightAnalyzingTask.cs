@@ -96,9 +96,9 @@ namespace FlightPatternDetection.Services
                             failedAttempts++;
                             Log?.LogWarning($"Failed to fetch history for a single");
                         }
-                        else if(ex is MySqlException)
+                        else if (ex is MySqlException)
                         {
-                          ; // Don't care, not as important, as it's only the airports that messes things up here.
+                            ; // Don't care, not as important, as it's only the airports that messes things up here.
                         }
                         else
                         {
@@ -123,7 +123,7 @@ namespace FlightPatternDetection.Services
                             totalProcessed += await m_dbContext.SaveChangesAsync();
                             currentBatch = 0;
                         }
-                        catch (MySqlException ex)
+                        catch (Exception ex)
                         {
                             Log?.LogError($"Failed to update analyzed flights in db.. Something might be wrong.. {ex.Message}");
                             break;
@@ -136,7 +136,7 @@ namespace FlightPatternDetection.Services
                 {
                     totalProcessed += await m_dbContext.SaveChangesAsync();
                 }
-                catch (MySqlException ex)
+                catch (Exception ex)
                 {
                     Log?.LogError($"Failed to update analyzed flights in db.. Something might be wrong.. {ex.Message}");
                 }

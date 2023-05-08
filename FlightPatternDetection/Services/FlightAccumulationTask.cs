@@ -49,8 +49,11 @@ namespace FlightPatternDetection.Services
             var earliestTimeDataIsAvalaiable = DateTime.UtcNow.Subtract(TimeSpan.FromDays(TrafficApiConstants.DaysDataIsKept));
 
             var allCurrentIds = await m_dbContext.AutomatedCollection
-                .Where(x => x.Fetched > earliestTimeDataIsAvalaiable) //Makes sure we limit how many Ids we're fetching so we never overload things.
-                .Select(x => x.FlightId).ToListAsync();
+                //.Where(x => x.Fetched > earliestTimeDataIsAvalaiable) //Makes sure we limit how many Ids we're fetching so we never overload things.
+                .OrderByDescending(x => x.Fetched)
+                .Take(1_000_000) // Hack: Take a million at max, hope it's okay and we still don't get any duplicates
+                .Select(x => x.FlightId)
+                .ToListAsync();
 
             foreach (var stringId in flightIdStr)
             {
@@ -74,9 +77,9 @@ namespace FlightPatternDetection.Services
                 var affectedRows = await m_dbContext.SaveChangesAsync();
                 Log?.LogInformation($"Added {affectedRows} to the database for data mining.");
             }
-            catch (MySqlException e)
+            catch (Exception e)
             {
-                Log?.LogError($"MySql encountered aan error.. Try again later lol: {e.Message}");
+                Log?.LogError($"MySql encountered an error.. Try again later lol: {e.Message}");
             }
         }
 
