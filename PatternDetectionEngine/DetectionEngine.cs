@@ -62,7 +62,6 @@ public class DetectionEngine
     {
         TrafficPosition? firstInversionPoint = null;
         TrafficPosition? lastInversionPoint = null;
-        HoldingDirection? holdingDirection = null;
         var foundHoldings = new List<List<TrafficPosition>>();
         var cleanedDataCopy = new List<TrafficPosition>(cleanedData);
         const int PointsToTake = 12;
@@ -77,17 +76,16 @@ public class DetectionEngine
                 if (IsInvertedHeading(currentPoint, nextPoint)
                     && IsSameAltitude(currentPoint, nextPoint)
                     && IsRecentEnough(currentPoint, nextPoint)
-                    && IsDistantEnough(currentPoint, nextPoint, 3.3)
+                    && IsDistantEnough(currentPoint, nextPoint, 2.5)
                     && IsCloseEnough(currentPoint, nextPoint, ApproximateMaximumRadiusOfHoldingPattern)
                     )
                 {
                     if (currentHolding is null)
                     {
                         var pointsInCurrentHeading = cleanedDataCopy.TakeWhile(x => IsSameDirection(currentPoint.Heading, x.Heading, InvertedHeadingBuffer * 2))
-                                                                        .ToList();
+                                                    .ToList();
 
                         var lastPointInCurrentHeading = pointsInCurrentHeading.Last();
-
                         currentHolding = new List<TrafficPosition>() {
                             lastPointInCurrentHeading,
                             nextPoint
@@ -95,17 +93,11 @@ public class DetectionEngine
 
                         firstInversionPoint ??= lastPointInCurrentHeading;
                         lastInversionPoint = nextPoint;
-                        holdingDirection = CalculateDirection(cleanedDataCopy, lastPointInCurrentHeading);
-                    }
-                    else if (CalculateDirection(cleanedDataCopy, nextPoint) == holdingDirection)
-                    {
-                        lastInversionPoint = nextPoint;
-                        currentHolding.Add(nextPoint);
                     }
                     else
                     {
-                        //We found another turn, but aparently in the wrong direction.
-                        //We should not count this turn then. We don't want zig-zags.
+                        lastInversionPoint = nextPoint;
+                        currentHolding.Add(nextPoint);
                     }
                     break;
                 }
@@ -118,7 +110,6 @@ public class DetectionEngine
                 foundHoldings.Add(currentHolding);
                 currentHolding = null;
                 lastInversionPoint = null;
-                holdingDirection = null;
             }
 
             if (lastInversionPoint is not null && cleanedDataCopy.Contains(lastInversionPoint))
@@ -272,14 +263,14 @@ public class DetectionEngine
                waypoint.Latitude >= point.Lat - buffer && waypoint.Latitude <= point.Lat + buffer;
     }
 
-    private bool IsDistantEnough(TrafficPosition point, TrafficPosition secondPoint, double buffer = 0.05)
+    private bool IsDistantEnough(TrafficPosition point, TrafficPosition secondPoint, double buffer = 3)
     {
         var point1 = new Coord(point);
         var point2 = new Coord(secondPoint);
         return point1.DistanceTo(point2) >= buffer;
     }
 
-    private bool IsCloseEnough(TrafficPosition point, TrafficPosition secondPoint, double buffer = 0.2)
+    private bool IsCloseEnough(TrafficPosition point, TrafficPosition secondPoint, double buffer = 12)
     {
         var point1 = new Coord(point);
         var point2 = new Coord(secondPoint);
@@ -349,8 +340,8 @@ public class DetectionEngine
             {
                 return true;
             }
-            var remaingAngleToCheck = (actualHeading + angleBuffer) % 360;
-            if (headingToCheck <= remaingAngleToCheck && headingToCheck >= 0)
+            var remainingAngleToCheck = (actualHeading + angleBuffer) % 360;
+            if (headingToCheck <= remainingAngleToCheck && headingToCheck >= 0)
             {
                 return true;
             }
@@ -394,8 +385,6 @@ public class DetectionEngine
 
     private bool IsInvertedHeading(TrafficPosition point, TrafficPosition second)
     {
-        //return point.Heading <= (second.Heading + (180 + InvertedHeadingBuffer)) % 360
-        //    && point.Heading >= (second.Heading + (180 - InvertedHeadingBuffer)) % 360;
         return IsSameDirection(point.Heading, second.Heading + 180, InvertedHeadingBuffer);
     }
 
