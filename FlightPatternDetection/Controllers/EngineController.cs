@@ -1,4 +1,5 @@
 ﻿using FlightPatternDetection.DTO;
+using FlightPatternDetection.Models;
 using FlightPatternDetection.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +13,7 @@ namespace FlightPatternDetection.Controllers
     [Route("[controller]")]
     public class EngineController : ControllerBase
     {
-        public const double DetectionCheckDistance = 0.5; //Exposing so FlightAnalyzingTask can use it
+        public const double DetectionCheckDistance = 0.75; //Exposing so FlightAnalyzingTask can use it
         private readonly ILogger<EngineController> _logger;
         private readonly TrafficClient _trafficClient;
         private readonly NavDbManager _navDbManager;
@@ -40,22 +41,14 @@ namespace FlightPatternDetection.Controllers
                 return BadRequest("Request must not be null, and the FlightId must be positive");
             }
 
+            List<TrafficPosition>? positions = null;
             if (request.UseFallback)
             {
                 var result = _fallbackController.GetAircraftHistoryAsync(request.FlightId);
 
-                if (result.Result is OkObjectResult okResult && okResult.Value is List<TrafficPosition> positions)
+                if (result.Result is OkObjectResult okResult && okResult.Value is List<TrafficPosition> positions_)
                 {
-                    await FlightDatabaseUtils.RecordInDatabaseAsync(positions, _context, _navDbManager);
-                    try
-                    {
-                        await _context.SaveChangesAsync();
-                    }
-                    catch (MySqlException ex)
-                    {
-                        _logger?.LogWarning($"Failed to fetch history for a single." + ex.Message);
-                    }
-                    return Ok(await AnalyzeFlightInternalAsync(positions));
+                    positions = positions_;
                 }
                 else
                 {
@@ -66,13 +59,8 @@ namespace FlightPatternDetection.Controllers
             {
                 try
                 {
-                    var positions = (await _trafficClient.HistoryAsync(request.FlightId, -1)).ToList();
-                    if (positions.Any())
-                    {
-                        //
-                        return Ok(await AnalyzeFlightInternalAsync(positions));
-                    }
-                    else
+                    positions = (await _trafficClient.HistoryAsync(request.FlightId, -1)).ToList();
+                    if (!positions.Any())
                     {
                         return NotFound($"{request.FlightId} was not found on ForeFlight servers");
                     }
@@ -83,9 +71,47 @@ namespace FlightPatternDetection.Controllers
                     return Problem($"Could not reach FF traffic service. Got status {ex.StatusCode}.");
                 }
             }
+
+            if (positions is null)
+            {
+                return Problem("No traffic data was found, and the cause was not handled properly.");
+            }
+
+            //Data is fetched. Now process:
+
+            if (request.EnableDbCollection)
+            {
+                await FlightDatabaseUtils.RecordInDatabaseAsync(positions, _context, _navDbManager);
+
+                try
+                {
+                    await _context.SaveChangesAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger?.LogWarning($"Failed to record flight {request.FlightId}: " + ex.Message);
+                }
+            }
+
+            var isHolding = AnalyzeFlightInternal(positions);
+
+            if (isHolding.IsHolding && request.EnableDbCollection)
+            {
+                // Checks if holdingPattern is already in database
+                var FlightID = FlightDatabaseUtils.GetLong(positions, x => x.Id);
+                var holdingPattern = await _context.HoldingPatterns.FirstOrDefaultAsync(x => x.FlightId == FlightID);
+
+                if (holdingPattern == null) // If it is not in DB, add it
+                {
+                    FlightDatabaseUtils.RecordHoldingPattern(_context, isHolding, positions);
+                    await _context.SaveChangesAsync();
+                }
+            }
+
+            return Ok(isHolding);
         }
 
-        private async Task<HoldingResult> AnalyzeFlightInternalAsync(List<TrafficPosition> flight)
+        private HoldingResult AnalyzeFlightInternal(List<TrafficPosition> flight)
         {
             if (flight.Count == 0)
             {
@@ -97,22 +123,7 @@ namespace FlightPatternDetection.Controllers
             }
 
             var isHolding = _simpleDetectionEngine.AnalyseFlight(flight);
-
-            if (isHolding.IsHolding != false)
-            {
-                // Checks if holdingPattern is already in database
-                var FlightID = FlightDatabaseUtils.GetLong(flight, x => x.Id);
-                var holdingPattern = await _context.HoldingPatterns.FirstOrDefaultAsync(x => x.FlightId == FlightID);
-
-                if (holdingPattern == null) // If it is not in DB, add it
-                {
-                    FlightDatabaseUtils.RecordHoldingPattern(_context, isHolding, flight);
-                    await _context.SaveChangesAsync();
-                }
-            }
-
             return isHolding;
-
         }
     }
 }

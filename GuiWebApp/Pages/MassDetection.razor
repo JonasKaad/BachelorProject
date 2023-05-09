@@ -7,11 +7,19 @@
 <PageTitle>Mass Detection</PageTitle>
 <h3>Mass Detector</h3>
 
-<div class="form-check mb-2">
-    <input class="form-check-input" type="checkbox" @bind="UseFallbackApi" id="fallbackApi">
-    <label class="form-check-label" for="fallbackApi">
-        Use Fallback API?
-    </label>
+<div class="row">
+    <div class="form-check mb-2 col-auto">
+        <input class="form-check-input" type="checkbox" @bind="UseFallbackApi" id="fallbackApi">
+        <label class="form-check-label" for="fallbackApi">
+            Use Fallback API?
+        </label>
+    </div>
+    <div class="form-check mb-2 col-auto">
+        <input class="form-check-input" type="checkbox" @bind="CollectDataInDb" id="dataInDb">
+        <label class="form-check-label" for="dataInDb">
+            Collect data in DB?
+        </label>
+    </div>
 </div>
 
 <div class="form-group mb-2 position-relative">
@@ -107,6 +115,7 @@
 @code {
     private bool OnlyShowHoldingPatterns { get; set; }
     private bool UseFallbackApi { get; set; }
+    private bool CollectDataInDb { get; set; }
     private string FlightIdTextArea { get; set; } = string.Empty;
 
     private bool IsCalculating { get; set; }
@@ -162,13 +171,14 @@
                 await Semaphore.WaitAsync();
                 tasks.Add(Task.Run(async () =>
                 {
-                    try
-                    {
-                        var result = await httpClient.PostAsJsonAsync("Engine/analyze", new AnalyzeFlightRequest()
-                            {
-                                FlightId = flightId,
-                                UseFallback = UseFallbackApi
-                            });
+                try
+                {
+                    var result = await httpClient.PostAsJsonAsync("Engine/analyze", new AnalyzeFlightRequest()
+                        {
+                            FlightId = flightId,
+                            UseFallback = UseFallbackApi,
+                            EnableDbCollection = CollectDataInDb,
+                        });
 
                         if (result.IsSuccessStatusCode)
                         {
