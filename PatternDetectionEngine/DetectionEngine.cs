@@ -13,7 +13,7 @@ public class DetectionEngine
 {
     private double CheckDistance { get; }
     private const int InvertedHeadingBuffer = 5;
-    private const int AltitudeBuffer = 250;
+    private const int AltitudeBuffer = 500;
     private INavDbManager? _navDbManager;
 
     private List<IFlightFilter> FlightFilters { get; set; }
