@@ -204,13 +204,10 @@
 
     private async Task AddWayPoints()
     {
-
-        StateHasChanged();
         try
         {
             var endpoint = UseFallbackApi ? "fallback" : "traffic";
             var res = await httpClient.GetAsync($"{endpoint}/history/{FlightId}");
-
 
             if (!res.IsSuccessStatusCode)
             {
