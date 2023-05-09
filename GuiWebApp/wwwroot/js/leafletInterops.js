@@ -20,6 +20,7 @@ async function createMap(lat, lng, zoomValue) {
         zoom: zoomValue,
         layers: [osmLayer],
     });
+    L.control.measure().addTo(map);
 }
 
 async function addPoint(lat, lng) {
