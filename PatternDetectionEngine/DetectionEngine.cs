@@ -64,7 +64,8 @@ public class DetectionEngine
         TrafficPosition? lastInversionPoint = null;
         var foundHoldings = new List<List<TrafficPosition>>();
         var cleanedDataCopy = new List<TrafficPosition>(cleanedData);
-        const int PointsToTake = 10;
+        const int PointsToTake = 12;
+        const double ApproximateMaximumRadiusOfHoldingPattern = 20; //20 Nautical Miles (~37 km)
         List<TrafficPosition>? currentHolding = null;
         while (cleanedDataCopy.Count > 0)
         {
@@ -76,7 +77,7 @@ public class DetectionEngine
                     && IsSameAltitude(currentPoint, nextPoint)
                     && IsRecentEnough(currentPoint, nextPoint)
                     && IsDistantEnough(currentPoint, nextPoint, 3.3)
-                    && IsCloseEnough(currentPoint, nextPoint, 12)
+                    && IsCloseEnough(currentPoint, nextPoint, ApproximateMaximumRadiusOfHoldingPattern)
                     )
                 {
                     if (currentHolding is null)
@@ -139,7 +140,6 @@ public class DetectionEngine
                 new(foundHoldings.First())
                 {}
             };
-            const double ApproximateMaximumRadiusOfHoldingPattern = 11; //11 Nautical Miles (~20 km)
 
             foreach (var holding in foundHoldings.Skip(1))
             {
@@ -169,13 +169,7 @@ public class DetectionEngine
 
         //Holdings were found. Find the laps and stuff.
 #if DEBUG
-        Console.WriteLine("Copy paste to JavaScript console");
-        foreach (var holding in foundHoldings)
-        {
-            Console.WriteLine("Found a holding pattern: ");
-            foreach (var point in holding)
-                Console.WriteLine($"addPoint({point.Lat.ToString(CultureInfo.InvariantCulture)}, {point.Lon.ToString(CultureInfo.InvariantCulture)});");
-        }
+        DebugPrint(foundHoldings);
 #endif
 
         //TODO: Technically have support for more. But api DTO's does not. So for now, just treat as one. 
@@ -188,7 +182,7 @@ public class DetectionEngine
             foreach (var holding in theHoldingPattern)
             {
                 if (point == holding) continue;
-                if (!IsCloseEnough(point, holding, 11))
+                if (!IsCloseEnough(point, holding, ApproximateMaximumRadiusOfHoldingPattern))
                 {
                     return new();
                 }
@@ -286,7 +280,7 @@ public class DetectionEngine
         var point1 = new Coord(point);
         var point2 = new Coord(secondPoint);
         var dist = point1.DistanceTo(point2);
-        return point1.DistanceTo(point2) <= buffer;
+        return dist <= buffer;
     }
 
     private bool IsRecentEnough(TrafficPosition point, TrafficPosition second)
@@ -431,4 +425,19 @@ public class DetectionEngine
         return pointToCheck > pointBoundary - CheckDistance
             && pointToCheck < pointBoundary + CheckDistance;
     }
+
+#if DEBUG
+    private void DebugPrint(List<List<TrafficPosition>> foundHoldings)
+    {
+        Console.WriteLine("Copy paste to JavaScript console");
+        foreach (var holding in foundHoldings)
+        {
+            Console.WriteLine("Found a holding pattern: ");
+            foreach (var point in holding)
+            {
+                Console.WriteLine(point.ToJsCommand());
+            }
+        }
+    }
+#endif
 }
