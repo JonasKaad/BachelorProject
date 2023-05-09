@@ -4,6 +4,7 @@ using FlightPatternDetection.Services;
 using PatternDetectionEngine.FlightFilters;
 using System.Diagnostics;
 using System.Globalization;
+using System.Reflection;
 using TrafficApiClient;
 
 namespace PatternDetectionEngine;
@@ -63,12 +64,12 @@ public class DetectionEngine
         TrafficPosition? lastInversionPoint = null;
         var foundHoldings = new List<List<TrafficPosition>>();
         var cleanedDataCopy = new List<TrafficPosition>(cleanedData);
-        const int pointsToTake = 10;
+        const int PointsToTake = 10;
         List<TrafficPosition>? currentHolding = null;
         while (cleanedDataCopy.Count > 0)
         {
             var currentPoint = cleanedDataCopy.First();
-            foreach (var nextPoint in cleanedDataCopy.Skip(1).Take(pointsToTake))
+            foreach (var nextPoint in cleanedDataCopy.Skip(1).Take(PointsToTake))
             {
                 //Find the next holding
                 if (IsInvertedHeading(currentPoint, nextPoint)
@@ -80,7 +81,10 @@ public class DetectionEngine
                 {
                     if (currentHolding is null)
                     {
-                        var lastPointInCurrentHeading = cleanedDataCopy.TakeWhile(x => x.Heading >= Math.Abs(currentPoint.Heading - InvertedHeadingBuffer * 2) && x.Heading <= Math.Abs(currentPoint.Heading + InvertedHeadingBuffer * 2)).Last();
+                        var pointsInCurrentHeading = cleanedDataCopy.TakeWhile(x => IsSameDirection(currentPoint.Heading, x.Heading, InvertedHeadingBuffer * 2))
+                                                                        .ToList();
+
+                        var lastPointInCurrentHeading = pointsInCurrentHeading.Last();
 
                         currentHolding = new List<TrafficPosition>() {
                             lastPointInCurrentHeading,
@@ -175,7 +179,7 @@ public class DetectionEngine
 #endif
 
         //TODO: Technically have support for more. But api DTO's does not. So for now, just treat as one. 
-        var theHoldingPattern = foundHoldings.MaxBy(x=>x.Count) ?? foundHoldings.First();
+        var theHoldingPattern = foundHoldings.MaxBy(x => x.Count) ?? foundHoldings.First();
 
         // Check that the points in the holding pattern are in a close enough cluster
 
@@ -304,14 +308,79 @@ public class DetectionEngine
         return firstInversionPoint.Heading - secondHolding.Heading; // Positive: Right, Negative: Left
     }
 
+    private bool IsSameDirection(double actualHeading, double headingToCheck, double angleBuffer = InvertedHeadingBuffer)
+    {
+        //Normalize within 360
+        actualHeading = actualHeading % 360;
+        headingToCheck = headingToCheck % 360;
+
+        if (actualHeading == headingToCheck)
+        {
+            return true;
+        }
+
+        //Check above the buffer
+        if (actualHeading + angleBuffer > 360)
+        {
+            //Edge-case with positive 360
+            if (headingToCheck > actualHeading && headingToCheck <= 360)
+            {
+                return true;
+            }
+            var remaingAngleToCheck = (actualHeading + angleBuffer) % 360;
+            if (headingToCheck <= remaingAngleToCheck && headingToCheck >= 0)
+            {
+                return true;
+            }
+        }
+        else
+        {
+            //Normal case check above. No fancy checking around 0 is needed.
+            if (headingToCheck >= actualHeading
+                && actualHeading + angleBuffer >= headingToCheck)
+            {
+                return true;
+            }
+        }
+
+        //Check below the angle
+        if (actualHeading - angleBuffer < 0)
+        {
+            //Edge case with 0
+            if (headingToCheck < actualHeading && headingToCheck >= 0)
+            {
+                return true;
+            }
+            //Remaing "under" 0 (wraps around to 360)
+            var remainingBelow360 = 360 + (actualHeading - angleBuffer);
+            if (headingToCheck >= remainingBelow360 && headingToCheck <= 360)
+            {
+                return true;
+            }
+        }
+        else
+        {
+            //Normal case check below. No fancy checking around 0 is needed.
+            if (headingToCheck < actualHeading && headingToCheck > (actualHeading - angleBuffer))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private bool IsInvertedHeading(TrafficPosition point, TrafficPosition second)
     {
-        return point.Heading <= (second.Heading + (180 + InvertedHeadingBuffer)) % 360 && point.Heading >= (second.Heading + (180 - InvertedHeadingBuffer)) % 360;
+        //return point.Heading <= (second.Heading + (180 + InvertedHeadingBuffer)) % 360
+        //    && point.Heading >= (second.Heading + (180 - InvertedHeadingBuffer)) % 360;
+        return IsSameDirection(point.Heading, second.Heading + 180, InvertedHeadingBuffer);
     }
 
     private bool IsSameAltitude(TrafficPosition point, TrafficPosition second)
     {
-        return point.Alt > second.Alt - AltitudeBuffer && point.Alt < second.Alt + AltitudeBuffer;
+        return point.Alt > second.Alt - AltitudeBuffer
+            && point.Alt < second.Alt + AltitudeBuffer;
     }
 
     public bool FlightIsFiltered(List<TrafficPosition> flightData)
@@ -331,7 +400,6 @@ public class DetectionEngine
 
     public List<TrafficPosition> RemoveUnnecessaryPoints(List<TrafficPosition> flightData)
     {
-
         var lastLat = flightData.Last().Lat;
         var lastLon = flightData.Last().Lon;
 
@@ -341,8 +409,10 @@ public class DetectionEngine
         {
             dest = _navDbManager.Airports.FirstOrDefault(x => x.ICAO == flightData.Last().Dest);
             dest ??= _navDbManager.Airports.FirstOrDefault(x =>
-                x.Longitude >= lastLon + 0.125 && x.Longitude <= lastLon - 0.125
-                                               && x.Latitude >= lastLat + 0.125 && x.Latitude <= lastLat - 0.125
+                                                  x.Longitude >= lastLon + 0.125
+                                               && x.Longitude <= lastLon - 0.125
+                                               && x.Latitude >= lastLat + 0.125
+                                               && x.Latitude <= lastLat - 0.125
             );
 
         }
@@ -351,8 +421,6 @@ public class DetectionEngine
         if (dest is not null)
             zeroedAltitude = dest.Elevation;
 
-
-
         return flightData.Where(f =>
             WithinDistance(f.Lat, lastLat) && WithinDistance(f.Lon, lastLon))
             .Where(p => p.Alt > zeroedAltitude + 5000).ToList();
@@ -360,6 +428,7 @@ public class DetectionEngine
 
     private bool WithinDistance(double pointToCheck, double pointBoundary)
     {
-        return pointToCheck > pointBoundary - CheckDistance && pointToCheck < pointBoundary + CheckDistance;
+        return pointToCheck > pointBoundary - CheckDistance
+            && pointToCheck < pointBoundary + CheckDistance;
     }
 }
