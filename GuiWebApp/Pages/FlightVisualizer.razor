@@ -19,11 +19,19 @@
 <div class="row">
     <div class="col-xxl-3 col-xl-4">    
         <p>Input the Flight-ID:</p> 
-        <div class="form-check mb-2">
+        <div class="row">
+        <div class="form-check mb-2 col-auto">
             <input class="form-check-input" type="checkbox" @bind="UseFallbackApi" id="fallbackApi">
             <label class="form-check-label" for="fallbackApi">
                 Use Fallback API?
             </label>
+        </div>
+            <div class="form-check mb-2 col-auto">
+                <input class="form-check-input" type="checkbox" @bind="DrawAsPoints" id="drawPoints">
+                <label class="form-check-label" for="drawPoints">
+                    Draw as points?
+                </label>
+            </div>
         </div>
         <div class="form-group mb-2">
             <input class="form-control ml-2 mr-2" list="test-flightids" placeholder="Flight ID" @bind="FlightId" />
@@ -158,6 +166,7 @@
 
     public bool IsLoading { get; set; }
     public bool UseFallbackApi { get; set; } = true;
+    public bool DrawAsPoints { get; set; } = false;
     public string Color { get; set; } = "red";
 
     public Exception? LastException { get; set; }
@@ -251,7 +260,6 @@
         StateHasChanged();
         try
         {
-
             var endpoint = UseFallbackApi ? "fallback" : "traffic";
             var res = await httpClient.GetAsync($"{endpoint}/history/{FlightId}");
 
@@ -260,16 +268,30 @@
                 throw new HttpRequestException($"{res.StatusCode}: {await res.Content.ReadAsStringAsync()}");
             }
             TrafficData = await res.Content.ReadFromJsonAsync<List<TrafficPosition>>();
-            var dataList = new List<List<double>>();
 
-            if (TrafficData is not null){
-                foreach (var point in TrafficData)
-                {
-                    dataList.Add(new List<double>() { point.Lat, point.Lon, point.Alt });
-                }
+            if(TrafficData is null)
+            {
+                LastException = new Exception("Traffic data is null");
+                return;
             }
 
+            var dataList = new List<List<double>>();
+
+            foreach (var point in TrafficData)
+            {
+                dataList.Add(new List<double>() { point.Lat, point.Lon, point.Alt });
+            }
             await map.CreatePath(dataList, Color);
+
+            if (DrawAsPoints)
+            {
+                //Drawing the traffic points on top
+                int index = 0;
+                foreach (var data in TrafficData)
+                {
+                    await map.AddWayPoints(data.Lat, data.Lon, $"Index: {index++}<br/>Alt: {data.Alt}<br/>Heading: {data.Heading}");
+                }
+            }
         }
         catch (Exception e)
         {
