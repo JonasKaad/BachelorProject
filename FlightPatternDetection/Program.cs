@@ -1,6 +1,7 @@
 using FlightPatternDetection.CronJobService;
 using FlightPatternDetection.Services;
 using Microsoft.EntityFrameworkCore;
+using System.Globalization;
 using TrafficApiClient;
 using TrafficStreamingApiClient;
 
@@ -10,6 +11,7 @@ namespace FlightPatternDetection
     {
         public static void Main(string[] args)
         {
+            CultureInfo.CurrentCulture = CultureInfo.InvariantCulture;
             var builder = WebApplication.CreateBuilder(args);
 
             // Add services to the container.
