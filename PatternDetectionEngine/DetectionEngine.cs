@@ -71,8 +71,8 @@ public class DetectionEngine
             foreach (var nextPoint in cleanedDataCopy.Skip(1).Take(pointsToTake))
             {
                 //Find the next holding
-                if (IsInvertedHeading(currentPoint, nextPoint) 
-                    && IsSameAltitude(currentPoint, nextPoint) 
+                if (IsInvertedHeading(currentPoint, nextPoint)
+                    && IsSameAltitude(currentPoint, nextPoint)
                     && IsRecentEnough(currentPoint, nextPoint)
                     && IsDistantEnough(currentPoint, nextPoint, 3.3)
                     && IsCloseEnough(currentPoint, nextPoint, 12)
@@ -127,6 +127,42 @@ public class DetectionEngine
             return new();
         }
 
+        if (foundHoldings.Count > 1)
+        {
+            //If we found more and just one, we check if they're close to each other. If they are, we merge them.
+            var newFoundHoldings = new List<List<TrafficPosition>>()
+            {
+                new(foundHoldings.First())
+                {}
+            };
+            const double ApproximateMaximumRadiusOfHoldingPattern = 11; //11 Nautical Miles (~20 km)
+
+            foreach (var holding in foundHoldings.Skip(1))
+            {
+                var lastNewFoundHoldingPoint = newFoundHoldings.Last().Last();
+                if (IsCloseEnough(lastNewFoundHoldingPoint, holding.Last(), ApproximateMaximumRadiusOfHoldingPattern))
+                {
+                    //The last holding's last point, is close to this holding's first point.
+                    //Thus we figure they must be part of the same holding, so we merge them
+                    newFoundHoldings.Last().AddRange(holding);
+                }
+                else
+                {
+                    //The last holding, and this holding are far apart. We assume they're different
+                    newFoundHoldings.Add(holding);
+                }
+            }
+
+#if DEBUG
+            if (foundHoldings.Count != newFoundHoldings.Count)
+            {
+                Console.WriteLine($"Merged found holdings. From {foundHoldings.Count} -> {newFoundHoldings.Count}");
+            }
+#endif
+
+            foundHoldings = newFoundHoldings;
+        }
+
         //Holdings were found. Find the laps and stuff.
 #if DEBUG
         Console.WriteLine("Copy paste to JavaScript console");
@@ -137,19 +173,18 @@ public class DetectionEngine
                 Console.WriteLine($"addPoint({point.Lat.ToString(CultureInfo.InvariantCulture)}, {point.Lon.ToString(CultureInfo.InvariantCulture)});");
         }
 #endif
-        
 
         //TODO: Technically have support for more. But api DTO's does not. So for now, just treat as one. 
-        var theHoldingPattern = foundHoldings.First();
-        
+        var theHoldingPattern = foundHoldings.MaxBy(x=>x.Count) ?? foundHoldings.First();
+
         // Check that the points in the holding pattern are in a close enough cluster
-        
+
         foreach (var point in theHoldingPattern)
         {
             foreach (var holding in theHoldingPattern)
             {
-                if(point == holding) continue;
-                if(!IsCloseEnough(point, holding, 11))
+                if (point == holding) continue;
+                if (!IsCloseEnough(point, holding, 11))
                 {
                     return new();
                 }
