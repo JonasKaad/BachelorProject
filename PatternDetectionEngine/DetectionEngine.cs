@@ -62,6 +62,7 @@ public class DetectionEngine
     {
         TrafficPosition? firstInversionPoint = null;
         TrafficPosition? lastInversionPoint = null;
+        HoldingDirection? holdingDirection = null;
         var foundHoldings = new List<List<TrafficPosition>>();
         var cleanedDataCopy = new List<TrafficPosition>(cleanedData);
         const int PointsToTake = 12;
@@ -94,11 +95,17 @@ public class DetectionEngine
 
                         firstInversionPoint ??= lastPointInCurrentHeading;
                         lastInversionPoint = nextPoint;
+                        holdingDirection = CalculateDirection(cleanedDataCopy, lastPointInCurrentHeading);
                     }
-                    else
+                    else if (CalculateDirection(cleanedDataCopy, nextPoint) == holdingDirection)
                     {
                         lastInversionPoint = nextPoint;
                         currentHolding.Add(nextPoint);
+                    }
+                    else
+                    {
+                        //We found another turn, but aparently in the wrong direction.
+                        //We should not count this turn then. We don't want zig-zags.
                     }
                     break;
                 }
@@ -111,6 +118,7 @@ public class DetectionEngine
                 foundHoldings.Add(currentHolding);
                 currentHolding = null;
                 lastInversionPoint = null;
+                holdingDirection = null;
             }
 
             if (lastInversionPoint is not null && cleanedDataCopy.Contains(lastInversionPoint))
@@ -144,7 +152,7 @@ public class DetectionEngine
             foreach (var holding in foundHoldings.Skip(1))
             {
                 var lastNewFoundHoldingPoint = newFoundHoldings.Last().Last();
-                if (IsCloseEnough(lastNewFoundHoldingPoint, holding.Last(), ApproximateMaximumRadiusOfHoldingPattern))
+                if (IsCloseEnough(lastNewFoundHoldingPoint, holding.Last(), ApproximateMaximumRadiusOfHoldingPattern / 2))
                 {
                     //The last holding's last point, is close to this holding's first point.
                     //Thus we figure they must be part of the same holding, so we merge them
@@ -192,10 +200,6 @@ public class DetectionEngine
         firstInversionPoint = theHoldingPattern.First();
         lastInversionPoint = theHoldingPattern.Last();
 
-        var headingDiff = CalculateDirection(cleanedData, firstInversionPoint);
-        if (headingDiff is null)
-            return new();
-
         var fixPoint = FindHoldingFixPoint(cleanedData, firstInversionPoint, lastInversionPoint, theHoldingPattern) ??
                     new EWayPoint(
                         theHoldingPattern.First().Lat,
@@ -211,7 +215,7 @@ public class DetectionEngine
         var holdingPattern = new HoldingResult()
         {
             IsHolding = foundHoldings.Any(),
-            Direction = headingDiff > 0 ? HoldingDirection.Left : HoldingDirection.Right,
+            Direction = CalculateDirection(cleanedData, firstInversionPoint),
             Altitude = firstInversionPoint.Alt,
             Laps = laps,
             FixPoint = fixPoint
@@ -288,18 +292,42 @@ public class DetectionEngine
         return second.Clock - point.Clock < 350 && second.Clock - point.Clock > 90;
     }
 
-    private static double? CalculateDirection(List<TrafficPosition> cleanedData, TrafficPosition firstInversionPoint)
+    private HoldingDirection CalculateDirection(List<TrafficPosition> cleanedData, TrafficPosition firstInversionPoint)
     {
         var secondHolding = cleanedData.SkipWhile(p => p != firstInversionPoint)
-            .SkipWhile(p => p.Heading == firstInversionPoint.Heading)
-            .Take(1).FirstOrDefault();
+            .SkipWhile(p => IsSameDirection(firstInversionPoint.Heading, p.Heading))
+            .First();
 
-        if (secondHolding is null)
+        return CalculateDirection(firstInversionPoint, secondHolding);
+    }
+
+    private HoldingDirection CalculateDirection(TrafficPosition firstInversionPoint, TrafficPosition pointAfterInverionPoint)
+    {
+        var diff = Math.Abs(firstInversionPoint.Heading - pointAfterInverionPoint.Heading);
+        if (diff > 270)
         {
-            return null;
+            //Edge case around 0/360
+            if (firstInversionPoint.Heading < pointAfterInverionPoint.Heading)
+            {
+                return HoldingDirection.Left;
+            }
+            else
+            {
+                return HoldingDirection.Right;
+            }
         }
-
-        return firstInversionPoint.Heading - secondHolding.Heading; // Positive: Right, Negative: Left
+        else
+        {
+            var direction = firstInversionPoint.Heading - pointAfterInverionPoint.Heading; // Positive: Right, Negative: Left
+            if (direction >= 0)
+            {
+                return HoldingDirection.Right;
+            }
+            else
+            {
+                return HoldingDirection.Left;
+            }
+        }
     }
 
     private bool IsSameDirection(double actualHeading, double headingToCheck, double angleBuffer = InvertedHeadingBuffer)
