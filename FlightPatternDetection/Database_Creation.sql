@@ -1,20 +1,19 @@
-create table Flight
+CREATE TABLE Flight
 (
-    Flight_Id    int         not null
+    Flight_Id    BIGINT         not null
         primary key
         unique,
     Registration VARCHAR(20) null,
-    Model        VARCHAR(50) null,
     ICAO         CHAR(4)     not null,
     Mode_S       VARCHAR(10) null,
     Call_Sign    VARCHAR(10) null
 );
 
-create table Holding_Pattern
+CREATE TABLE Holding_Pattern
 (
-    Flight_Id    int                    not null
+    Flight_Id    BIGINT                    not null
         primary key,
-    Fixpoint     VARCHAR(15)            null,
+    Fixpoint     VARCHAR(200)            null,
     Laps         int                    null,
     Direction    ENUM ('RIGHT', 'LEFT') null,
     Leg_Distance double                 null,
@@ -23,9 +22,9 @@ create table Holding_Pattern
         foreign key (Flight_Id) references Flight (Flight_Id)
 );
 
-create table Airport
+CREATE TABLE Airport
 (
-    ICAO      CHAR(4)      not null
+    ICAO      VARCHAR(100)      not null
         primary key
         unique,
     Name      VARCHAR(100) null,
@@ -35,14 +34,13 @@ create table Airport
 );
 
 
-create table Route_Information
+CREATE TABLE Route_Information
 (
-    Flight_ID        int       null
+    Flight_ID        BIGINT       null
         primary key,
-    Destination_ICAO CHAR(4)   null,
-    Origin_ICAO      CHAR(4)   null,
+    Destination_ICAO VARCHAR(100)   null,
+    Origin_ICAO      VARCHAR(100)   null,
     Takeoff_Time     TIMESTAMP null,
-    ATC_Route        LONGTEXT  null,
     constraint Route_Information_Airport_ICAO_fk
         foreign key (Destination_ICAO) references Airport (ICAO),
     constraint Route_Information_Airport_ICAO_fk_2

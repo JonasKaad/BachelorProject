@@ -14,6 +14,7 @@ namespace FlightPatternDetection.Services
         private IServiceScope m_applicationScope;
         private ApplicationDbContext m_dbContext;
         private DetectionEngine m_engine;
+        private NavDbManager m_navDbManager;
         private TrafficClient m_trafficClient;
         public FlightAnalyzingTask(ILogger<FlightAnalyzingTask> logger, TrafficClient trafficClient, IServiceProvider services, NavDbManager navDbManager, IScheduleConfig<FlightAnalyzingTask> config)
         : base(config.CronExpression, config.TimeZoneInfo, config.RunImmediately)
@@ -25,6 +26,7 @@ namespace FlightPatternDetection.Services
 
             m_engine = new DetectionEngine(EngineController.DetectionCheckDistance, navDbManager);
             m_trafficClient = trafficClient;
+            m_navDbManager = navDbManager;
         }
 
         public async override Task DoWork(CancellationToken cancellationToken)
@@ -67,6 +69,7 @@ namespace FlightPatternDetection.Services
                     }
 
                     flight.IsProcessed = true;
+                    var airportsAdded = new List<string>();
                     List<TrafficPosition>? flightData = null;
                     try
                     {
@@ -78,9 +81,11 @@ namespace FlightPatternDetection.Services
                         }
 
                         var result = m_engine.AnalyseFlight(flightData);
+                        await FlightDatabaseUtils.RecordInDatabaseAsync(flightData, m_dbContext, m_navDbManager);
                         flight.DidHold = result.IsHolding;
                         if (result.IsHolding)
                         {
+                            FlightDatabaseUtils.RecordHoldingPattern(m_dbContext, result, flightData);
                             flight.RawJson = ZipUtils.ZipData(JsonConvert.SerializeObject(flightData));
                         }
                     }
@@ -90,6 +95,10 @@ namespace FlightPatternDetection.Services
                         {
                             failedAttempts++;
                             Log?.LogWarning($"Failed to fetch history for a single");
+                        }
+                        else if (ex is MySqlException)
+                        {
+                            ; // Don't care, not as important, as it's only the airports that messes things up here.
                         }
                         else
                         {
@@ -114,7 +123,7 @@ namespace FlightPatternDetection.Services
                             totalProcessed += await m_dbContext.SaveChangesAsync();
                             currentBatch = 0;
                         }
-                        catch (MySqlException ex)
+                        catch (Exception ex)
                         {
                             Log?.LogError($"Failed to update analyzed flights in db.. Something might be wrong.. {ex.Message}");
                             break;
@@ -127,7 +136,7 @@ namespace FlightPatternDetection.Services
                 {
                     totalProcessed += await m_dbContext.SaveChangesAsync();
                 }
-                catch (MySqlException ex)
+                catch (Exception ex)
                 {
                     Log?.LogError($"Failed to update analyzed flights in db.. Something might be wrong.. {ex.Message}");
                 }

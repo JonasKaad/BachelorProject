@@ -1,11 +1,9 @@
-﻿
-
-using FlightPatternDetection.DTO;
-using FlightPatternDetection.DTO.NavDBEntities;
+﻿using FlightPatternDetection.DTO;
 using FlightPatternDetection.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using MySqlConnector;
 using PatternDetectionEngine;
-using System.Diagnostics;
 using TrafficApiClient;
 
 namespace FlightPatternDetection.Controllers
@@ -19,20 +17,20 @@ namespace FlightPatternDetection.Controllers
         private readonly TrafficClient _trafficClient;
         private readonly NavDbManager _navDbManager;
         private readonly DetectionEngine _simpleDetectionEngine;
-
+        private readonly ApplicationDbContext _context;
         private readonly FallbackAircraftTrafficController _fallbackController;
 
-        public EngineController(ILogger<EngineController> logger, TrafficClient trafficClient, NavDbManager navDbManager)
+        public EngineController(ILogger<EngineController> logger, TrafficClient trafficClient, NavDbManager navDbManager, ApplicationDbContext applicationDbContext)
         {
             _logger = logger;
             _trafficClient = trafficClient;
             _navDbManager = navDbManager;
+            _context = applicationDbContext;
 
             _fallbackController = new FallbackAircraftTrafficController();
 
             _simpleDetectionEngine = new DetectionEngine(DetectionCheckDistance, navDbManager);
         }
-
 
         [HttpPost("analyze")]
         public async Task<ActionResult<HoldingResult>> AnalyzeFlight(AnalyzeFlightRequest request)
@@ -48,7 +46,16 @@ namespace FlightPatternDetection.Controllers
 
                 if (result.Result is OkObjectResult okResult && okResult.Value is List<TrafficPosition> positions)
                 {
-                    return Ok(AnalyzeFlightInternal(positions));
+                    await FlightDatabaseUtils.RecordInDatabaseAsync(positions, _context, _navDbManager);
+                    try
+                    {
+                        await _context.SaveChangesAsync();
+                    }
+                    catch (MySqlException ex)
+                    {
+                        _logger?.LogWarning($"Failed to fetch history for a single." + ex.Message);
+                    }
+                    return Ok(await AnalyzeFlightInternalAsync(positions));
                 }
                 else
                 {
@@ -62,7 +69,8 @@ namespace FlightPatternDetection.Controllers
                     var positions = (await _trafficClient.HistoryAsync(request.FlightId, -1)).ToList();
                     if (positions.Any())
                     {
-                        return Ok(AnalyzeFlightInternal(positions));
+                        //
+                        return Ok(await AnalyzeFlightInternalAsync(positions));
                     }
                     else
                     {
@@ -77,7 +85,7 @@ namespace FlightPatternDetection.Controllers
             }
         }
 
-        private HoldingResult AnalyzeFlightInternal(List<TrafficPosition> flight)
+        private async Task<HoldingResult> AnalyzeFlightInternalAsync(List<TrafficPosition> flight)
         {
             if (flight.Count == 0)
             {
@@ -90,7 +98,21 @@ namespace FlightPatternDetection.Controllers
 
             var isHolding = _simpleDetectionEngine.AnalyseFlight(flight);
 
+            if (isHolding.IsHolding != false)
+            {
+                // Checks if holdingPattern is already in database
+                var FlightID = FlightDatabaseUtils.GetLong(flight, x => x.Id);
+                var holdingPattern = await _context.HoldingPatterns.FirstOrDefaultAsync(x => x.FlightId == FlightID);
+
+                if (holdingPattern == null) // If it is not in DB, add it
+                {
+                    FlightDatabaseUtils.RecordHoldingPattern(_context, isHolding, flight);
+                    await _context.SaveChangesAsync();
+                }
+            }
+
             return isHolding;
+
         }
     }
 }

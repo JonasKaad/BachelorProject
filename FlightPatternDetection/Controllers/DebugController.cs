@@ -91,15 +91,20 @@ namespace FlightPatternDetection.Controllers
         }
 
         [HttpGet("GetFlightExample")]
-        public async Task<Flight> GetFlights()
+        public async Task<Flight> GetFlights(string flightid)
         {
-            var testFlight = await _context.Flights.FirstAsync(x => x.FlightId == 1939169898);
+            if (await _context.Flights.AnyAsync(x => x.FlightId == long.Parse(flightid)))
+            {
 
-            return testFlight;
+                var testFlight = await _context.Flights.FirstAsync(x => x.FlightId == long.Parse(flightid));
+                return testFlight;
+            }
+            else return null;
+
         }
 
         [HttpPost("CreateFlightExample")]
-        public async Task<Flight> CreateFlight(int flightId, string registration, string iCAO, string modeS, string callSign)
+        public async Task<Flight> CreateFlight(long flightId, string registration, string iCAO, string modeS, string callSign)
         {
             var newFlight = new Flight()
             {
@@ -132,7 +137,7 @@ namespace FlightPatternDetection.Controllers
         }
 
         [HttpPost("CreateHoldingPatternExample")]
-        public async Task<HoldingPattern> CreateHoldingPattern(int flightId, string fixpoint, int laps, Direction direction, double legDistance, double altitude)
+        public async Task<HoldingPattern> CreateHoldingPattern(long flightId, string fixpoint, int laps, Direction direction, double legDistance, double altitude)
         {
             var newHoldingPattern = new HoldingPattern()
             {
