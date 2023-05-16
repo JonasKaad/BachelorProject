@@ -21,10 +21,10 @@ namespace FlightPatternDetection
                 var newFlight = new Flight()
                 {
                     FlightId = GetLong(positions, x => x.Id),
-                    Registration = GetString(positions, x => x.Reg),
-                    ICAO = GetString(positions, x => x.AircraftType),
-                    ModeS = GetString(positions, x => x.Hexid),
-                    CallSign = GetString(positions, x => x.Ident),
+                    Registration = GetString(positions, x => x.Reg) ?? "---",
+                    ICAO = GetString(positions, x => x.AircraftType) ?? "---",
+                    ModeS = GetString(positions, x => x.Hexid) ?? "---",
+                    CallSign = GetString(positions, x => x.Ident) ?? "---",
                 };
                 _dbContext.Flights.Add(newFlight);
             }
@@ -35,45 +35,34 @@ namespace FlightPatternDetection
             Airport origin = null;
             Airport destination = null;
 
-            if (GetString(positions, x => x?.Orig ?? string.Empty) == string.Empty)
-            {
-                // Checks first data points and tries to the find closest airport in NavDB
-                EAirport originAirport = AirportNavDB(positions.First().Lat, positions.First().Lon, _navDbManager);
-                if (originAirport.Identifier != "_")
-                {
-                    var _ICAO = AirportICAOHandler(originAirport);
-                    var _Country = AirportCountryHandler(originAirport);
-                    origin = await CreateOrFetchAirport(originAirport.Name, _Country, _ICAO, originAirport.Latitude, originAirport.Longitude, _dbContext);
-                }
-            }
-            else
+            if (GetString(positions, x => x?.Orig ?? string.Empty) is string origString && !string.IsNullOrEmpty(origString))
             {
                 // Checks the data and finds the first occurrence of the origin Airport ICAO
-                EAirport origAirport = _navDbManager.Airports.First(x => x.ICAO == GetString(positions, x => x?.Orig ?? string.Empty));
-                var _ICAO = AirportICAOHandler(origAirport);
-                var _Country = AirportCountryHandler(origAirport);
-                origin = await CreateOrFetchAirport(origAirport.Name, _Country, _ICAO, origAirport.Latitude, origAirport.Longitude, _dbContext);
-            }
-
-            if (GetString(positions, x => x?.Dest ?? string.Empty) == string.Empty)
-            {
-                // Checks last data points and tries to the find closest airport in NavDB
-                EAirport destinationAirport = AirportNavDB(positions.Last().Lat, positions.Last().Lon, _navDbManager);
-                if (destinationAirport.Identifier != "_") // Default case 
+                EAirport? origAirport = _navDbManager.Airports.FirstOrDefault(x => x.ICAO == origString);
+                if (origAirport is not null)
                 {
-                    var _ICAO = AirportICAOHandler(destinationAirport);
-                    var _Country = AirportCountryHandler(destinationAirport);
-                    destination = await CreateOrFetchAirport(destinationAirport.Name, _Country, _ICAO, destinationAirport.Latitude, destinationAirport.Longitude, _dbContext);
+                    var _ICAO = AirportICAOHandler(origAirport);
+                    var _Country = AirportCountryHandler(origAirport);
+                    origin = await CreateOrFetchAirport(origAirport.Name, _Country, _ICAO, origAirport.Latitude, origAirport.Longitude, _dbContext);
                 }
             }
-            else
+            // If we haven't found the origin try to check first data points and tries to the find closest airport in NavDB
+            origin ??= await FindAirportFromLatLon(positions, _dbContext, _navDbManager);
+
+            if (GetString(positions, x => x?.Dest ?? string.Empty) is string destString && !string.IsNullOrEmpty(destString))
             {
                 // Checks the data and finds the first occurrence of the destination Airport ICAO
-                EAirport destAirport = _navDbManager.Airports.First(x => x.ICAO == GetString(positions, x => x?.Dest ?? string.Empty));
-                var _ICAO = AirportICAOHandler(destAirport);
-                var _Country = AirportCountryHandler(destAirport);
-                destination = await CreateOrFetchAirport(destAirport.Name, _Country, _ICAO, destAirport.Latitude, destAirport.Longitude, _dbContext);
+                EAirport? destAirport = _navDbManager.Airports.FirstOrDefault(x => x.ICAO == destString);
+                if (destAirport is not null)
+                {
+                    var _ICAO = AirportICAOHandler(destAirport);
+                    var _Country = AirportCountryHandler(destAirport);
+                    destination = await CreateOrFetchAirport(destAirport.Name, _Country, _ICAO, destAirport.Latitude, destAirport.Longitude, _dbContext);
+                }
             }
+
+            // Checks last data points and tries to the find closest airport in NavDB
+            destination ??= await FindAirportFromLatLon(positions, _dbContext, _navDbManager);
 
             // Route Information
 
@@ -93,6 +82,18 @@ namespace FlightPatternDetection
                     _dbContext.RouteInformation.Add(newRoute);
                 }
             }
+        }
+
+        private static async Task<Airport?> FindAirportFromLatLon(List<TrafficPosition> positions, ApplicationDbContext _dbContext, NavDbManager _navDbManager)
+        {
+            EAirport airport = AirportNavDB(positions.Last().Lat, positions.Last().Lon, _navDbManager);
+            if (airport.Identifier != "_") // Default case 
+            {
+                var _ICAO = AirportICAOHandler(airport);
+                var _Country = AirportCountryHandler(airport);
+                return await CreateOrFetchAirport(airport.Name, _Country, _ICAO, airport.Latitude, airport.Longitude, _dbContext);
+            }
+            return null;
         }
 
         // Stores holding patterns in the Database
@@ -128,7 +129,7 @@ namespace FlightPatternDetection
         // Handles the cases where the NavDB does not contain a name for the airport
         private static string AirportICAOHandler(EAirport eAirport)
         {
-            string? ICAO = eAirport.ICAO ?? eAirport.FullName;
+            string? ICAO = string.IsNullOrEmpty(eAirport.ICAO) ? eAirport.FullName : eAirport.ICAO;
             return ICAO;
         }
 
@@ -189,14 +190,14 @@ namespace FlightPatternDetection
         /// <param name="flight"></param>
         /// <param name="selector"></param>
         /// <returns>String</returns>
-        private static string GetString(List<TrafficPosition> flight, Func<TrafficPosition?, string> selector)
+        private static string? GetString(List<TrafficPosition> flight, Func<TrafficPosition?, string> selector)
         {
             var tempFlight = flight.FirstOrDefault(x => !string.IsNullOrWhiteSpace(selector(x)));
             if (tempFlight != null)
             {
                 return selector(tempFlight);
             }
-            return "---";
+            return null;
         }
     }
 }
