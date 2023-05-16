@@ -35,7 +35,7 @@ namespace FlightPatternDetection
             Airport origin = null;
             Airport destination = null;
 
-            if (GetString(positions, x => x?.Orig ?? string.Empty) != string.Empty)
+            if (GetString(positions, x => x?.Orig ?? string.Empty) == string.Empty)
             {
                 // Checks first data points and tries to the find closest airport in NavDB
                 EAirport originAirport = AirportNavDB(positions.First().Lat, positions.First().Lon, _navDbManager);
@@ -55,7 +55,7 @@ namespace FlightPatternDetection
                 origin = await CreateOrFetchAirport(origAirport.Name, _Country, _ICAO, origAirport.Latitude, origAirport.Longitude, _dbContext);
             }
 
-            if (GetString(positions, x => x?.Dest ?? string.Empty) != string.Empty)
+            if (GetString(positions, x => x?.Dest ?? string.Empty) == string.Empty)
             {
                 // Checks last data points and tries to the find closest airport in NavDB
                 EAirport destinationAirport = AirportNavDB(positions.Last().Lat, positions.Last().Lon, _navDbManager);
