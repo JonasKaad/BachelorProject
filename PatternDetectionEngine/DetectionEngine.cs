@@ -9,7 +9,7 @@ using TrafficApiClient;
 
 namespace PatternDetectionEngine;
 
-public class DetectionEngine
+public class DetectionEngine : IDetectionEngine
 {
     private double CheckDistance { get; }
     private const int InvertedHeadingBuffer = 5;

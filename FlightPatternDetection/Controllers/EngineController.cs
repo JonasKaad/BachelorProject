@@ -17,7 +17,7 @@ namespace FlightPatternDetection.Controllers
         private readonly ILogger<EngineController> _logger;
         private readonly TrafficClient _trafficClient;
         private readonly NavDbManager _navDbManager;
-        private readonly DetectionEngine _simpleDetectionEngine;
+        private readonly IDetectionEngine _simpleDetectionEngine;
         private readonly ApplicationDbContext _context;
         private readonly FallbackAircraftTrafficController _fallbackController;
 
@@ -30,7 +30,7 @@ namespace FlightPatternDetection.Controllers
 
             _fallbackController = new FallbackAircraftTrafficController(_context);
 
-            _simpleDetectionEngine = new DetectionEngine(DetectionCheckDistance, navDbManager);
+            _simpleDetectionEngine = EngineFactory.GetEngine(DetectionCheckDistance, _navDbManager);
         }
 
         [HttpPost("analyze")]
