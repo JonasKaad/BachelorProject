@@ -309,8 +309,8 @@ public class DetectionEngine
         }
         else
         {
-            var direction = firstInversionPoint.Heading - pointAfterInverionPoint.Heading; // Positive: Right, Negative: Left
-            if (direction >= 0)
+            var direction = firstInversionPoint.Heading - pointAfterInverionPoint.Heading; // Positive: Left, Negative: Right
+            if (direction <= 0)
             {
                 return HoldingDirection.Right;
             }
