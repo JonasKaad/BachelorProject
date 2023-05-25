@@ -18,7 +18,7 @@ namespace FlightPatternDetection
             var FlightId = GetLong(positions, x => x.Id);
             if (!await _dbContext.Flights.AnyAsync(x => x.FlightId == FlightId))
             {
-                var newFlight = new Flight()
+                var newFlight = new FlightPatternDetection.Models.Flight()
                 {
                     FlightId = GetLong(positions, x => x.Id),
                     Registration = GetString(positions, x => x.Reg) ?? "---",
