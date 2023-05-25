@@ -91,10 +91,10 @@ namespace FlightPatternDetection.Services
                     }
                     catch (Exception ex)
                     {
-                        if (ex is ApiException)
+                        if (ex is ApiException apiEx)
                         {
                             failedAttempts++;
-                            Log?.LogWarning($"Failed to fetch history for a single");
+                            Log?.LogWarning($"Failed to fetch history for a single flight. FF-Api returned: {apiEx.StatusCode}");
                         }
                         else if (ex is MySqlException)
                         {
