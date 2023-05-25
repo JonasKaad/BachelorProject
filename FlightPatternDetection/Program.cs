@@ -22,7 +22,12 @@ namespace FlightPatternDetection
                 config.AddConsole();
             });
 
-            builder.Services.AddSingleton(sp => new TrafficClient(builder.Configuration["trafficClientEndpoint"]));
+            builder.Services.AddSingleton(sp =>
+            {
+                var client = new TrafficClient(builder.Configuration["trafficClientEndpoint"]);
+                client.SetApiKey(builder.Configuration["trafficApiKey"]);
+                return client;
+            });
             builder.Services.AddSingleton(sp => new TrafficStreamingClient(builder.Configuration["trafficStreamingClientEndpoint"]));
             builder.Services.AddSingleton<NavDbManager>();
             builder.Services.AddSwaggerGen();
