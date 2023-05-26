@@ -28,7 +28,12 @@ namespace FlightPatternDetection
                 client.SetApiKey(builder.Configuration["trafficApiKey"]);
                 return client;
             });
-            builder.Services.AddSingleton(sp => new TrafficStreamingClient(builder.Configuration["trafficStreamingClientEndpoint"]));
+            builder.Services.AddSingleton(sp =>
+            {
+                var client = new TrafficStreamingClient(builder.Configuration["trafficStreamingClientEndpoint"]);
+                client.SetApiKey(builder.Configuration["trafficStreamingApiKey"]);
+                return client;
+            });
             builder.Services.AddSingleton<NavDbManager>();
             builder.Services.AddSwaggerGen();
 

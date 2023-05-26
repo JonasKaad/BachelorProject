@@ -142,7 +142,7 @@ namespace TrafficStreamingApiClient
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TrafficPosition>> AllAsync(int? amount, System.Threading.CancellationToken cancellationToken)
         {
             var urlBuilder_ = new System.Text.StringBuilder();
-            urlBuilder_.Append(BaseUrl != null ? BaseUrl.TrimEnd('/') : "").Append("/traffic/v1/Position/DEV/all?");
+            urlBuilder_.Append(BaseUrl != null ? BaseUrl.TrimEnd('/') : "").Append("/traffic/v1/Position/all?");
             if (amount != null)
             {
                 urlBuilder_.Append(System.Uri.EscapeDataString("amount") + "=").Append(System.Uri.EscapeDataString(ConvertToString(amount, System.Globalization.CultureInfo.InvariantCulture))).Append("&");

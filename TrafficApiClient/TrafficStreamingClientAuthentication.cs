@@ -1,6 +1,6 @@
-﻿namespace TrafficApiClient
+﻿namespace TrafficStreamingApiClient
 {
-    partial class TrafficClient
+    partial class TrafficStreamingClient
     {
         private string? m_apiKey = null;
         public void SetApiKey(string? apiKey)
