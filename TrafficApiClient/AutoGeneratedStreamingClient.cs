@@ -63,7 +63,7 @@ namespace TrafficStreamingApiClient
         public virtual async System.Threading.Tasks.Task<TrafficPosition> CurrentPositionAsync(string query, System.Threading.CancellationToken cancellationToken)
         {
             var urlBuilder_ = new System.Text.StringBuilder();
-            urlBuilder_.Append(BaseUrl != null ? BaseUrl.TrimEnd('/') : "").Append("/traffic/v1/Position/search/currentPosition?");
+            urlBuilder_.Append(BaseUrl != null ? BaseUrl.TrimEnd('/') : "").Append("/Position/v1/search/currentPosition?");
             if (query != null)
             {
                 urlBuilder_.Append(System.Uri.EscapeDataString("query") + "=").Append(System.Uri.EscapeDataString(ConvertToString(query, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
@@ -142,7 +142,7 @@ namespace TrafficStreamingApiClient
         public virtual async System.Threading.Tasks.Task<System.Collections.Generic.ICollection<TrafficPosition>> AllAsync(int? amount, System.Threading.CancellationToken cancellationToken)
         {
             var urlBuilder_ = new System.Text.StringBuilder();
-            urlBuilder_.Append(BaseUrl != null ? BaseUrl.TrimEnd('/') : "").Append("/traffic/v1/Position/all?");
+            urlBuilder_.Append(BaseUrl != null ? BaseUrl.TrimEnd('/') : "").Append("/Position/v1/all?");
             if (amount != null)
             {
                 urlBuilder_.Append(System.Uri.EscapeDataString("amount") + "=").Append(System.Uri.EscapeDataString(ConvertToString(amount, System.Globalization.CultureInfo.InvariantCulture))).Append("&");
